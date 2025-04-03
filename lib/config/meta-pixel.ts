@@ -1,36 +1,29 @@
 // Configurações do Meta Pixel
 
-// Valores padrão embutidos (fallback) caso as variáveis de ambiente não estejam disponíveis
-const FALLBACK_VALUES = {
-  // Token de acesso para a API de Conversões (fallback para desenvolvimento/testes)
-  API_TOKEN: 'EAAP5yQs70lwBO0fduf8kMZBsu1dAG8X4yyQ4YuRjQ8gqDcJPu1Fn3m9psxoaamasgDnQ7DyOLx2wLBhzXFYmg5aric5lxxXNQn4DRv0uHlMNldZB9lcx2gppRMyzPZALKSGOQSzTSd8dDZBoZAslWBl7VTF6CmEHHdYAW3ysz4xIZCtl5tHZCMitAVOi6zdpeGUXgZDZD',
-  // Código de teste para eventos
-  TEST_CODE: 'TEST57043',
-  // ID do Pixel
-  PIXEL_ID: '191914309246603'
-};
-
 // Verificar status das variáveis de ambiente no carregamento
 if (typeof window !== 'undefined') {
   // Executar após o carregamento do DOM para garantir que os logs apareçam
   setTimeout(() => {
-    // Verificar se usamos valores do ambiente ou fallback
-    const usingEnvApiToken = !!process.env.META_API_ACCESS_TOKEN;
-    const usingEnvTestCode = !!process.env.META_TEST_EVENT_CODE;
-    const usingEnvPixelId = !!process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
+    // Verificar se as variáveis de ambiente necessárias estão definidas
+    const hasApiToken = !!process.env.META_API_ACCESS_TOKEN;
+    const hasTestCode = !!process.env.META_TEST_EVENT_CODE;
+    const hasPixelId = !!process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
     
-    // Token real ou fallback
-    const actualApiToken = process.env.META_API_ACCESS_TOKEN || FALLBACK_VALUES.API_TOKEN;
-    const actualTestCode = process.env.META_TEST_EVENT_CODE || FALLBACK_VALUES.TEST_CODE;
-    const actualPixelId = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || FALLBACK_VALUES.PIXEL_ID;
+    if (!hasApiToken || !hasTestCode || !hasPixelId) {
+      console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META NÃO CONFIGURADAS ====================');
+      console.error('As seguintes variáveis de ambiente são obrigatórias:');
+      if (!hasApiToken) console.error('- META_API_ACCESS_TOKEN');
+      if (!hasTestCode) console.error('- META_TEST_EVENT_CODE');
+      if (!hasPixelId) console.error('- NEXT_PUBLIC_FACEBOOK_PIXEL_ID');
+      console.error('===================================================================');
+    }
     
     console.log('==================== DIAGNÓSTICO DE VARIÁVEIS META ====================');
     console.log('META_API_ACCESS_TOKEN status:', {
-      exists: usingEnvApiToken,
-      usingFallback: !usingEnvApiToken,
-      length: actualApiToken.length,
-      preview: actualApiToken 
-        ? `${actualApiToken.substring(0, 4)}...${actualApiToken.substring(actualApiToken.length - 4)}`
+      exists: hasApiToken,
+      length: process.env.META_API_ACCESS_TOKEN?.length || 0,
+      preview: process.env.META_API_ACCESS_TOKEN 
+        ? `${process.env.META_API_ACCESS_TOKEN.substring(0, 4)}...${process.env.META_API_ACCESS_TOKEN.substring(process.env.META_API_ACCESS_TOKEN.length - 4)}`
         : 'VAZIA',
       env: process.env.NODE_ENV,
       isVercel: !!process.env.VERCEL,
@@ -38,12 +31,12 @@ if (typeof window !== 'undefined') {
       timestamp: new Date().toISOString()
     });
     console.log('META_TEST_EVENT_CODE:', {
-      value: actualTestCode,
-      source: usingEnvTestCode ? 'process.env' : 'fallback'
+      value: process.env.META_TEST_EVENT_CODE,
+      source: 'process.env'
     });
     console.log('NEXT_PUBLIC_FACEBOOK_PIXEL_ID:', {
-      value: actualPixelId,
-      usingFallback: !usingEnvPixelId
+      value: process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID,
+      exists: hasPixelId
     });
     console.log('===================================================================');
   }, 500);
@@ -51,13 +44,13 @@ if (typeof window !== 'undefined') {
 
 export const META_PIXEL_CONFIG = {
   // ID do Pixel do Meta
-  PIXEL_ID: process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || FALLBACK_VALUES.PIXEL_ID,
+  PIXEL_ID: process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID,
 
-  // Token de acesso para a API de Conversões - usar valor padrão embutido caso a variável não exista
-  ACCESS_TOKEN: process.env.META_API_ACCESS_TOKEN || FALLBACK_VALUES.API_TOKEN,
+  // Token de acesso para a API de Conversões
+  ACCESS_TOKEN: process.env.META_API_ACCESS_TOKEN,
 
-  // Código de teste para eventos - usar valor padrão embutido
-  TEST_EVENT_CODE: process.env.META_TEST_EVENT_CODE || FALLBACK_VALUES.TEST_CODE,
+  // Código de teste para eventos
+  TEST_EVENT_CODE: process.env.META_TEST_EVENT_CODE,
 
   // Configurações de deduplicação
   DEDUPLICATION: {

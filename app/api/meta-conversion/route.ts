@@ -24,9 +24,19 @@ interface TrackingData {
 }
 
 // Configurações da API de Conversão do Meta
-const META_PIXEL_ID = process.env.FACEBOOK_PIXEL_ID || "627212412327362"
-const META_ACCESS_TOKEN = process.env.META_API_ACCESS_TOKEN || ""
-const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || "TEST57043"
+const META_PIXEL_ID = process.env.FACEBOOK_PIXEL_ID
+const META_ACCESS_TOKEN = process.env.META_API_ACCESS_TOKEN
+const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE
+
+// Verificar se as variáveis de ambiente necessárias estão definidas
+if (!META_PIXEL_ID || !META_ACCESS_TOKEN || !TEST_EVENT_CODE) {
+  console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META NÃO CONFIGURADAS ====================');
+  console.error('As seguintes variáveis de ambiente são obrigatórias:');
+  if (!META_PIXEL_ID) console.error('- FACEBOOK_PIXEL_ID');
+  if (!META_ACCESS_TOKEN) console.error('- META_API_ACCESS_TOKEN');
+  if (!TEST_EVENT_CODE) console.error('- META_TEST_EVENT_CODE');
+  console.error('===================================================================');
+}
 
 /**
  * Endpoint da API de Conversão do Meta

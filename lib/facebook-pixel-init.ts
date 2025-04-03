@@ -58,7 +58,12 @@ export function initFacebookPixel(): void {
   window.fbq.queue = []
 
   // Obter o ID do Pixel da variável de ambiente
-  const pixelId = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || "191914309246603"
+  const pixelId = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID
+  
+  if (!pixelId) {
+    console.error('[Facebook Pixel] ERRO: NEXT_PUBLIC_FACEBOOK_PIXEL_ID não está definido nas variáveis de ambiente')
+    return
+  }
   
   // Registrar um evento para garantir que o script seja utilizado
   window.fbq("init", pixelId)
