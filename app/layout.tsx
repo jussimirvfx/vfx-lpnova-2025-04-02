@@ -6,6 +6,9 @@ import { META_PIXEL_CONFIG } from "@/lib/config/meta-pixel"
 import { MetaPixelProvider } from "@/components/providers/meta-pixel-provider"
 import { MetaPixel } from "@/components/analytics/meta-pixel"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { viewport } from "./viewport"
+
+export { viewport }
 
 // Definir fonte Inter como secundária
 const inter = Inter({ 
@@ -27,11 +30,7 @@ export const metadata: Metadata = {
   title: "Agência VFX - Marketing Digital e Produção de Vídeos",
   description: "Marketing Digital Estratégico e Produção de Vídeos para impulsionar seu negócio",
   manifest: "/manifest.json",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
-  },
+  metadataBase: new URL('https://vfx.com.br'),
   other: {
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",

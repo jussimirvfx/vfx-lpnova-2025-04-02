@@ -25,7 +25,6 @@ export const metadata: Metadata = {
   title: "Agência VFX - Marketing Digital e Produção de Vídeos",
   description:
     "Assessoria Comercial com Marketing Digital e Produção de Vídeos. Mais de 3500 empresas confiam no método VFX.",
-  manifest: "/manifest.json",
   verification: {
     google: "google-site-verification=xyz", // Adicionar código real
   },
@@ -33,7 +32,6 @@ export const metadata: Metadata = {
     title: "Agência VFX - Marketing Digital e Produção de Vídeos",
     description: "Assessoria Comercial com Marketing Digital e Produção de Vídeos",
     type: "website",
-    url: "https://vfx.com.br", // Adicionar URL real
     images: [
       {
         url: "/images/og-image.jpg",

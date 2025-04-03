@@ -1,13 +1,5 @@
-import type { Metadata, Viewport } from "next"
+import type { Metadata } from "next"
 import Link from "next/link"
-
-export const viewport: Viewport = {
-  themeColor: "#187eff",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-}
 
 export const metadata: Metadata = {
   title: "Página não encontrada - VFX Agência",
