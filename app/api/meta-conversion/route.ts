@@ -22,7 +22,7 @@ interface TrackingData {
 // Configurações da API de Conversão do Meta
 const META_PIXEL_ID = process.env.FACEBOOK_PIXEL_ID || "627212412327362"
 const META_ACCESS_TOKEN = process.env.META_API_ACCESS_TOKEN || ""
-const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || "TEST63891"
+const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE || "TEST57043"
 
 /**
  * Endpoint da API de Conversão do Meta

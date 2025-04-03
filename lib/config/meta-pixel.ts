@@ -5,7 +5,7 @@ const FALLBACK_VALUES = {
   // Token de acesso para a API de Conversões (fallback para desenvolvimento/testes)
   API_TOKEN: 'EAAP5yQs70lwBO0fduf8kMZBsu1dAG8X4yyQ4YuRjQ8gqDcJPu1Fn3m9psxoaamasgDnQ7DyOLx2wLBhzXFYmg5aric5lxxXNQn4DRv0uHlMNldZB9lcx2gppRMyzPZALKSGOQSzTSd8dDZBoZAslWBl7VTF6CmEHHdYAW3ysz4xIZCtl5tHZCMitAVOi6zdpeGUXgZDZD',
   // Código de teste para eventos
-  TEST_CODE: 'TEST75192',
+  TEST_CODE: 'TEST57043',
   // ID do Pixel
   PIXEL_ID: '191914309246603'
 };
