@@ -177,50 +177,16 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
   // Configuração especial para evento PageView
   const isPageViewEvent = event.event_name === 'PageView';
   
-  // Defina true aqui para forçar sempre API de conversão em todos os ambientes
-  const FORCE_API = true;
-
   // Definir número máximo de tentativas
   const MAX_RETRIES = 2;
   
-  // Verificar se o token da API está disponível
-  const isTokenMissing = !META_PIXEL_CONFIG.ACCESS_TOKEN || META_PIXEL_CONFIG.ACCESS_TOKEN.trim() === '';
-  
-  // Primeiro verifica se há token de acesso disponível
-  if (isTokenMissing && !FORCE_API) {
-    logger.debug(
-      LogCategory.CONVERSION_API, 
-      'API de Conversões desativada - token não configurado',
-      { eventName: event.event_name }
-    );
-    return false;
-  }
-  
-  // Usar sempre o token real da variável de ambiente quando disponível
-  // Apenas usar token fictício em desenvolvimento quando não houver token real
-  let token = META_PIXEL_CONFIG.ACCESS_TOKEN;
-  
-  // Se não tem token e estamos em desenvolvimento ou forçando API, usar token fictício
-  if (isTokenMissing && FORCE_API) {
-    token = 'DEV_TOKEN_' + META_PIXEL_CONFIG.PIXEL_ID;
-    
-    logger.warn(
-      LogCategory.CONVERSION_API,
-      'Usando token fictício para API. Configure META_API_ACCESS_TOKEN para produção.',
-      { pixelId: META_PIXEL_CONFIG.PIXEL_ID }
-    );
-  }
-
   // Log início da requisição
   logger.info(
     LogCategory.CONVERSION_API, 
     `Iniciando envio para API: ${event.event_name}`,
     { 
       eventId: event.event_id,
-      url: `https://graph.facebook.com/v18.0/${META_PIXEL_CONFIG.PIXEL_ID}/events`,
-      retry: retryCount,
-      testCode: META_PIXEL_CONFIG.TEST_EVENT_CODE,
-      tokenConfigured: !isTokenMissing
+      retry: retryCount
     }
   );
 
@@ -242,29 +208,6 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
     // Extrair FBP e FBC para user_data
     const fbp = document.cookie.match(/_fbp=([^;]+)/)?.pop() || null;
     const fbc = document.cookie.match(/_fbc=([^;]+)/)?.pop() || null;
-    
-    // Verificar se temos FBP e se não tivermos e for PageView, tentar esperar um pouco mais
-    if (isPageViewEvent && !fbp && retryCount === 0) {
-      logger.warn(
-        LogCategory.CONVERSION_API,
-        'Cookie _fbp não encontrado, aguardando mais tempo',
-        { cookies: document.cookie }
-      );
-      
-      // Esperar mais 1 segundo para cookies serem criados
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Tentar obter novamente
-      const fbpRetry = document.cookie.match(/_fbp=([^;]+)/)?.pop() || null;
-      
-      if (fbpRetry) {
-        logger.info(
-          LogCategory.CONVERSION_API,
-          'Cookie _fbp encontrado após espera adicional',
-          { fbp: fbpRetry }
-        );
-      }
-    }
     
     // Obter todos os cookies para logs
     const allCookies = document.cookie;
@@ -297,13 +240,9 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
     const viewportHeight = window.innerHeight;
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     
-    // Preparar dados do evento no formato correto para a API
-    // Seguindo documentação https://developers.facebook.com/docs/marketing-api/conversions-api/using-the-api
-    
     // 1. Construir o objeto user_data principal
     const apiUserData: any = {
       client_user_agent: navigator.userAgent,
-      client_ip_address: null, // Será preenchido pelo servidor
       fbp: fbp,
       fbc: fbc,
     };
@@ -359,85 +298,47 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
       delete apiCustomData.user_data;
     }
 
-    // 3. Montar o eventData final
+    // 3. Montar o eventData final para enviar para nosso servidor
     const eventData = {
       event_name: event.event_name,
       event_time: event.event_time,
       event_id: event.event_id,
-      event_source_url: event.event_source_url || window.location.href, // Garantir URL de origem
+      event_source_url: event.event_source_url || window.location.href,
       action_source: "website",
       user_data: apiUserData,
       custom_data: apiCustomData
     };
     
-    // Criar payload final
-    const payload = {
-      data: [eventData],
-      access_token: token,
-      test_event_code: META_PIXEL_CONFIG.TEST_EVENT_CODE,
-    };
-    
+    // Log dos dados do evento
     logger.debug(
       LogCategory.CONVERSION_API, 
-      `Payload da API (${event.event_name})`,
+      `Payload do evento para API própria (${event.event_name})`,
       { 
         eventId: event.event_id,
         eventTime: event.event_time,
-        params: event.custom_data,
-        accessTokenLength: token?.length || 0,
-        testEventCode: META_PIXEL_CONFIG.TEST_EVENT_CODE || 'não definido',
-        hasFbp: !!fbp,
-        hasFbc: !!fbc,
-        urlPath,
-        screenSize: `${screenWidth}x${screenHeight}`
+        userDataKeys: Object.keys(apiUserData)
       }
     );
     
-    try {
-      // Log do payload completo para depuração
-      const maskedPayload = {
-        ...payload,
-        access_token: payload.access_token ? `${payload.access_token.substring(0, 4)}...${payload.access_token.substring(payload.access_token.length - 4)}` : undefined
-      };
-      console.log('META API PAYLOAD:', JSON.stringify(maskedPayload, null, 2));
-    } catch (e) {
-      // Ignore erro de serialize
-    }
-    
-    // Fazer requisição para o endpoint
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${META_PIXEL_CONFIG.PIXEL_ID}/events`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+    // Fazer requisição para o nosso endpoint em vez da API do Meta diretamente
+    // Assim o servidor vai adicionar automaticamente o IP real do cliente
+    console.log(`[IP-TRACKING] Enviando evento ${event.event_name} para endpoint próprio para captura de IP`);
+    const response = await fetch('/api/meta-conversion', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(eventData),
+    });
 
     const responseTime = performance.now() - startTime;
-    
-    // Registra resposta completa para depuração
-    try {
-      const responseBody = await response.clone().text();
-      console.log(`META API RESPONSE (${response.status}):`, responseBody);
-      
-      logger.debug(
-        LogCategory.CONVERSION_API,
-        `Resposta API (status: ${response.status})`,
-        { body: responseBody }
-      );
-    } catch (e) {
-      // Ignorar erros ao ler corpo duplicado
-    }
     
     // Verificar resposta
     if (!response.ok) {
       const responseText = await response.text();
       logger.error(
         LogCategory.CONVERSION_API, 
-        `Erro na resposta HTTP: ${event.event_name}`,
+        `Erro na resposta HTTP da API própria: ${event.event_name}`,
         { 
           eventId: event.event_id,
           status: response.status,
@@ -468,39 +369,28 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
 
     const data = await response.json();
     
-    if (data.errors) {
+    if (!data.success) {
       logger.error(
         LogCategory.CONVERSION_API, 
-        `Erro na resposta da API: ${event.event_name}`,
+        `Erro na resposta da API própria: ${event.event_name}`,
         { 
           eventId: event.event_id,
-          errors: data.errors,
+          error: data.error,
           responseTime
         }
       );
       
       // Retry para erros que podem ser resolvidos com nova tentativa
       if (retryCount < MAX_RETRIES) {
-        // Verificar tipo de erro para determinar se vale a pena repetir
-        const shouldRetry = data.errors.some((error: any) => {
-          // Erros temporários ou de rate limiting geralmente são retryable
-          return error.code === 80004 || // Rate limiting
-                 error.code === 35 ||    // Tempo esgotado
-                 error.code === 2 ||     // Serviço temporariamente indisponível
-                 error.code === 368;     // Erro temporário
-        });
+        const waitTime = Math.pow(2, retryCount) * 1000;
+        logger.warn(
+          LogCategory.CONVERSION_API,
+          `Tentando novamente em ${waitTime}ms...`,
+          { retryCount: retryCount + 1, maxRetries: MAX_RETRIES }
+        );
         
-        if (shouldRetry) {
-          const waitTime = Math.pow(2, retryCount) * 1000;
-          logger.warn(
-            LogCategory.CONVERSION_API,
-            `Tentando novamente em ${waitTime}ms...`,
-            { retryCount: retryCount + 1, maxRetries: MAX_RETRIES }
-          );
-          
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          return sendConversionAPI(event, retryCount + 1);
-        }
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        return sendConversionAPI(event, retryCount + 1);
       }
       
       return false;
@@ -513,7 +403,7 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
       { 
         eventId: event.event_id,
         responseTime: `${Math.round(responseTime)}ms`,
-        response: data
+        success: data.success
       }
     );
     return true;

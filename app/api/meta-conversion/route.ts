@@ -138,6 +138,12 @@ export async function POST(request: Request) {
       client_user_agent: trackingData.ua || headersList.get("user-agent"),
     }
     
+    // Log do IP capturado (parcial para privacidade)
+    const ipAddress = userData.client_ip_address || 'desconhecido';
+    const maskedIp = ipAddress === 'desconhecido' ? 'desconhecido' : 
+      `${ipAddress.split('.').slice(0, 2).join('.')}.**.**`;
+    console.log(`[IP-TRACKING] IP capturado para evento ${cleanData.event_name}: ${maskedIp}`);
+    
     // Adicionar external_id hasheado se disponível
     if (externalId) {
       userData.external_id = hashData(externalId)
