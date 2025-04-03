@@ -103,6 +103,15 @@ export async function POST(request: Request) {
       client_user_agent: trackingData.ua || headersList.get("user-agent"),
     }
 
+    // Fallback: Tentar obter fbp diretamente do cookie se não veio no payload
+    if (!userData.fbp) {
+      const fbpCookie = cookiesList.get('_fbp');
+      if (fbpCookie) {
+        console.log('[Meta Conversion API] Fallback: Usando _fbp do cookie.');
+        userData.fbp = fbpCookie.value;
+      }
+    }
+
     // Verificar qualidade dos dados
     const userDataQuality = {
       hasFbc: !!userData.fbc,
