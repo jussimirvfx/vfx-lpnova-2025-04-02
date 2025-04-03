@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { headers, cookies } from "next/headers"
-import { validateFbc } from "@/lib/meta-utils"
+import { validateFbc, hashData } from "@/lib/meta-utils"
 import { META_PIXEL_CONFIG } from "@/lib/config/meta-pixel"
 
 export const runtime = "nodejs"
@@ -12,6 +12,10 @@ export const runtime = "nodejs"
 interface TrackingData {
   ip?: string;
   ua?: string;
+  fbp?: string; 
+  fbc?: string;
+  timestamp?: number;
+  external_id?: string;
   geo?: {
     country?: string;
     city?: string;
@@ -96,11 +100,35 @@ export async function POST(request: Request) {
     // Remover o test_event_code dos dados enviados pelo cliente
     const { test_event_code: _, ...cleanData } = data;
 
+    // Obter external_id do cookie ou do header
+    let externalId = trackingData.external_id
+    if (!externalId) {
+      // Tentar obter do cookie diretamente
+      externalId = cookiesList.get('_vfx_extid')?.value
+      
+      if (externalId) {
+        console.log('[Meta Conversion API] Obteve external_id do cookie: ' + externalId.substring(0, 8) + '...');
+      } else {
+        // Tentar obter do header (definido pelo middleware)
+        externalId = headersList.get('x-external-id') || undefined
+        if (externalId) {
+          console.log('[Meta Conversion API] Obteve external_id do header: ' + externalId.substring(0, 8) + '...');
+        }
+      }
+    } else {
+      console.log('[Meta Conversion API] Obteve external_id dos dados de tracking: ' + externalId.substring(0, 8) + '...');
+    }
+
     // Preparar os dados do usuário com informações do servidor
     const userData = {
       ...cleanData.user_data,
       client_ip_address: trackingData.ip || headersList.get("x-forwarded-for") || headersList.get("x-real-ip"),
       client_user_agent: trackingData.ua || headersList.get("user-agent"),
+    }
+    
+    // Adicionar external_id hasheado se disponível
+    if (externalId) {
+      userData.external_id = hashData(externalId)
     }
 
     // Fallback: Tentar obter fbp diretamente do cookie se não veio no payload

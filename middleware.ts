@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
+import { v4 as uuidv4 } from 'uuid'
+
+// Nome do cookie para o external_id
+const EXTERNAL_ID_COOKIE_NAME = '_vfx_extid'
 
 // Rotas que não precisam do middleware
 const EXCLUDED_PATHS = [
@@ -55,6 +59,15 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
+    // Obter ou gerar um external_id para o visitante
+    let externalId = request.cookies.get(EXTERNAL_ID_COOKIE_NAME)?.value
+    const isNewUser = !externalId
+    
+    if (!externalId) {
+      externalId = uuidv4()
+      console.log(`[Meta Middleware] Novo external_id gerado: ${externalId.substring(0, 8)}...`);
+    }
+
     // Capturar dados do usuário
     const ip = getClientIp(request)
     const ua = getUserAgent(request)
@@ -68,13 +81,27 @@ export async function middleware(request: NextRequest) {
       geo,
       fbp,
       fbc,
+      external_id: externalId,
       timestamp: Date.now(),
     }
 
     // Criar resposta com os dados
     const response = NextResponse.next()
+    
+    // Definir/atualizar o cookie de external_id para identificação persistente
+    if (isNewUser) {
+      response.cookies.set({
+        name: EXTERNAL_ID_COOKIE_NAME,
+        value: externalId,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365, // 1 ano
+        path: '/',
+      })
+    }
 
-    // Definir cookie httpOnly com os dados
+    // Definir cookie httpOnly com os dados gerais de rastreamento
     response.cookies.set('__meta_data', JSON.stringify(trackingData), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -83,11 +110,15 @@ export async function middleware(request: NextRequest) {
       path: '/',
     })
 
+    // Incluir o external_id em um header específico para facilitar o acesso
+    response.headers.set('x-external-id', externalId)
+
     // Log para debug (redatando dados sensíveis)
     const logData = {
       ...trackingData,
       ip: '***',
       ua: '[REDACTED]',
+      external_id: `${externalId.substring(0, 8)}...`,
     }
     console.log('[Meta Middleware] Dados capturados:', logData)
 

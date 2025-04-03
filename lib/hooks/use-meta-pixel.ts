@@ -9,6 +9,8 @@ import { generateEventId, normalizeAndHashPhone, normalizeAndHashEmail, hashData
 // Chave para o localStorage de eventos enviados
 const STORAGE_KEY = '_meta_events_sent';
 
+const EXTERNAL_ID_COOKIE_NAME = '_vfx_extid';
+
 /**
  * Obter eventos já enviados do localStorage
  */
@@ -144,6 +146,22 @@ function addUniversalParameters(params: Record<string, any>): Record<string, any
 // Função para validar parâmetros universais
 function validateUniversalParameters(params: Record<string, any>): boolean {
   return META_PIXEL_CONFIG.UNIVERSAL_PARAMETERS.every((param) => param in params);
+}
+
+// Função para obter external_id dos cookies
+function getExternalId(): string | null {
+  if (typeof document === 'undefined') return null;
+
+  const cookies = document.cookie.split(';');
+  
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i].trim();
+    if (cookie.startsWith(EXTERNAL_ID_COOKIE_NAME + '=')) {
+      return cookie.substring(EXTERNAL_ID_COOKIE_NAME.length + 1);
+    }
+  }
+  
+  return null;
 }
 
 // Função para enviar evento via API de Conversões
@@ -283,6 +301,17 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
       fbp: fbp,
       fbc: fbc,
     };
+
+    // Adicionar external_id se disponível
+    const externalId = getExternalId();
+    if (externalId) {
+      apiUserData.external_id = hashData(externalId);
+      logger.debug(
+        LogCategory.CONVERSION_API,
+        'external_id adicionado ao evento via API',
+        { idFound: !!externalId, idLength: externalId.length }
+      );
+    }
 
     // Adicionar dados do usuário do evento (ph, em, fn, etc.) se existirem
     if (event.user_data) {
@@ -508,47 +537,51 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
   }
 }
 
-// Função para enviar evento via Pixel
+// Função para enviar evento via Pixel do navegador (fbq)
 function sendPixelEvent(event: MetaPixelEvent): boolean {
-  if (typeof window === 'undefined') return false;
-
-  // Log início
-  logger.info(
-    LogCategory.META_PIXEL, 
-    `Iniciando envio para Pixel: ${event.event_name}`,
-    { eventId: event.event_id }
-  );
+  if (typeof window === 'undefined' || !isPixelInitialized()) {
+    logger.warn(
+      LogCategory.META_PIXEL, 
+      'Pixel não inicializado, impossível enviar evento',
+      { eventName: event.event_name }
+    );
+    return false;
+  }
 
   try {
-    if (!window.fbq) {
-      logger.error(
-        LogCategory.META_PIXEL, 
-        'Meta Pixel não inicializado',
-        { eventName: event.event_name, eventId: event.event_id }
-      );
-      return false;
-    }
-
-    // Extrair eventId para usar no formato correto exigido pelo FB Pixel
-    const { event_id, ...customData } = event.custom_data || {};
+    // Obter ID do evento ou gerar um novo
+    const eventId = event.event_id || generateEventId();
     
-    // Mesclar customData com user_data para enviar ao Pixel
-    const pixelParams = {
-      ...customData,
-      user_data: event.user_data || {}
+    // Obter parâmetros base
+    const baseParams = {
+      event_id: eventId,
     };
     
-    // Log parâmetros
-    logger.debug(
-      LogCategory.META_PIXEL, 
-      `Parâmetros do evento Pixel: ${event.event_name}`,
-      { 
-        eventId: event_id || event.event_id,
-        paramsCount: Object.keys(pixelParams).length,
-        hasUserData: !!event.user_data && Object.keys(event.user_data).length > 0,
-        params: pixelParams
-      }
-    );
+    // Obter dados de usuário
+    let userData = event.user_data || {};
+    
+    // Adicionar external_id aos dados do usuário se disponível
+    const externalId = getExternalId();
+    if (externalId) {
+      userData.external_id = hashData(externalId);
+      logger.debug(
+        LogCategory.META_PIXEL,
+        'external_id adicionado ao evento do Pixel',
+        { idLength: externalId.length }
+      );
+    }
+    
+    // Converter parâmetros para formato esperado pelo fbq
+    const pixelParams = {
+      ...baseParams,
+      ...event.custom_data
+    };
+    
+    // Preparar opções com os dados do usuário
+    const pixelOptions = {
+      eventID: eventId,
+      user_data: userData
+    };
     
     // Verificar se o evento é padrão
     const isStandardEvent = META_PIXEL_CONFIG.STANDARD_EVENTS.includes(event.event_name as any);
@@ -562,7 +595,7 @@ function sendPixelEvent(event: MetaPixelEvent): boolean {
         { isStandardEvent: true }
       );
       // @ts-ignore - O TypeScript não reconhece o quarto parâmetro, mas a documentação do FB indica que é necessário
-      window.fbq("track", event.event_name, pixelParams, { eventID: event_id || event.event_id });
+      window.fbq("track", event.event_name, pixelParams, pixelOptions);
     } else {
       // Eventos personalizados usam esta sintaxe
       logger.debug(
@@ -571,7 +604,7 @@ function sendPixelEvent(event: MetaPixelEvent): boolean {
         { isStandardEvent: false }
       );
       // @ts-ignore - O TypeScript não reconhece o quarto parâmetro, mas a documentação do FB indica que é necessário
-      window.fbq("trackCustom", event.event_name, pixelParams, { eventID: event_id || event.event_id });
+      window.fbq("trackCustom", event.event_name, pixelParams, pixelOptions);
     }
 
     // Log sucesso
@@ -579,7 +612,7 @@ function sendPixelEvent(event: MetaPixelEvent): boolean {
       LogCategory.META_PIXEL, 
       `Evento enviado com sucesso via Pixel: ${event.event_name}`,
       { 
-        eventId: event_id || event.event_id,
+        eventId,
         method: isStandardEvent ? 'track' : 'trackCustom'
       }
     );
