@@ -28,10 +28,7 @@ if (typeof window !== 'undefined') {
     console.log('META_API_ACCESS_TOKEN status:', {
       exists: usingEnvApiToken,
       usingFallback: !usingEnvApiToken,
-      length: actualApiToken.length,
-      preview: actualApiToken 
-        ? `${actualApiToken.substring(0, 8)}...${actualApiToken.substring(actualApiToken.length - 5)}`
-        : 'VAZIA',
+      configured: !!actualApiToken,
       env: process.env.NODE_ENV,
       isVercel: !!process.env.VERCEL,
       vercelEnv: process.env.VERCEL_ENV || 'não definido',

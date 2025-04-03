@@ -357,7 +357,15 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
     
     try {
       // Log do payload completo para depuração
-      console.log('META API PAYLOAD:', JSON.stringify(payload, null, 2));
+      if (process.env.NODE_ENV === 'development') {
+        console.log('META API PAYLOAD:', {
+          eventName: event.event_name,
+          eventId: event.event_id,
+          hasUserData: !!payload.data[0].user_data,
+          hasCustomData: !!payload.data[0].custom_data,
+          testEventCode: payload.test_event_code
+        });
+      }
     } catch (e) {
       // Ignore erro de serialize
     }

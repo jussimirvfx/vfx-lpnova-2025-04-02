@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { logger, LogCategory, LogEntry, eventLogs } from '@/lib/utils/logger'
+
+// Adicionado: Verificar explicitamente o ambiente Vercel também
+const isProduction = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'production';
 
 interface MetaPixelLogsProps {
   maxEntries?: number
@@ -126,13 +129,41 @@ export default function MetaPixelLogs({
     setLogs(getFilteredLogs())
   }, [selectedCategory])
 
-  // Formatar dados JSON para visualização
+  // Formatar dados JSON para visualização, ocultando chaves sensíveis em produção
   const formatData = (data: any): string => {
     if (!data) return ''
     try {
-      return JSON.stringify(data, null, 2)
+      // Em produção, ou se não for um objeto, apenas retorne um placeholder
+      if (isProduction || typeof data !== 'object' || data === null) {
+         // Não mostrar dados detalhados em produção
+         return isProduction ? '[Data hidden in production]' : String(data); 
+      }
+
+      // Clonar o objeto para não modificar o original
+      const dataClone = JSON.parse(JSON.stringify(data)); 
+      
+      // Chaves a serem ocultadas (adicione outras se necessário)
+      const sensitiveKeys = ['access_token', 'apiKey', 'secret', 'token', 'client_secret'];
+
+      // Função recursiva para percorrer e ocultar
+      const redact = (obj: any) => {
+        if (typeof obj !== 'object' || obj === null) return;
+        Object.keys(obj).forEach(key => {
+          if (sensitiveKeys.includes(key.toLowerCase())) {
+            obj[key] = '[REDACTED]';
+          } else if (typeof obj[key] === 'object') {
+            redact(obj[key]); // Recursivamente para objetos aninhados
+          }
+        });
+      };
+
+      redact(dataClone); // Ocultar chaves sensíveis
+
+      return JSON.stringify(dataClone, null, 2)
     } catch (e) {
-      return String(data)
+      // Em caso de erro na serialização, retorne um placeholder seguro
+      console.error("Error formatting log data:", e);
+      return isProduction ? '[Data hidden in production]' : '[Error formatting data]';
     }
   }
 
@@ -143,7 +174,12 @@ export default function MetaPixelLogs({
   }
 
   // Só renderizar em desenvolvimento
-  if (process.env.NODE_ENV !== 'development') {
+  // Usar a variável isProduction que checa NODE_ENV e VERCEL_ENV
+  if (isProduction) {
+    // Log de aviso caso tente renderizar em produção (ajuda a debugar config errada)
+    if (typeof window !== 'undefined') {
+        console.warn("MetaPixelLogs component attempted to render in a production environment. Check NODE_ENV/VERCEL_ENV settings.");
+    }
     return null
   }
 

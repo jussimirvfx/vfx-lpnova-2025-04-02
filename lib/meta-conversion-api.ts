@@ -311,6 +311,26 @@ export async function sendToMetaConversionApi(params: MetaConversionParams): Pro
         console.log(`[Meta Conversion API] Aguardando ${delay}ms antes da próxima tentativa...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
+
+      // Registra resposta completa para depuração
+      try {
+        const responseBody = await response.clone().text();
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`META API RESPONSE (${response.status}):`, {
+            status: response.status,
+            success: response.ok,
+            hasBody: !!responseBody
+          });
+          
+          logger.debug(
+            LogCategory.CONVERSION_API,
+            `Resposta API (status: ${response.status})`,
+            { success: response.ok }
+          );
+        }
+      } catch (e) {
+        // Ignorar erros ao ler corpo duplicado
+      }
     } catch (error) {
       lastError = error;
       console.error(`[Meta Conversion API] Erro de rede ao enviar ${params.event_name}:`, error);
