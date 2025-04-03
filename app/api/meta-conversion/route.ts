@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
     // Log para debug (com dados sensíveis redatados)
     const payloadForLog = JSON.parse(JSON.stringify(payload));
-    payloadForLog.access_token = "***";
+    payloadForLog.access_token = payloadForLog.access_token ? `${payloadForLog.access_token.substring(0, 4)}...${payloadForLog.access_token.substring(payloadForLog.access_token.length - 4)}` : undefined;
     if (payloadForLog.data[0].user_data) {
       payloadForLog.data[0].user_data = {
         ...payloadForLog.data[0].user_data,

@@ -30,7 +30,7 @@ if (typeof window !== 'undefined') {
       usingFallback: !usingEnvApiToken,
       length: actualApiToken.length,
       preview: actualApiToken 
-        ? `${actualApiToken.substring(0, 8)}...${actualApiToken.substring(actualApiToken.length - 5)}`
+        ? `${actualApiToken.substring(0, 4)}...${actualApiToken.substring(actualApiToken.length - 4)}`
         : 'VAZIA',
       env: process.env.NODE_ENV,
       isVercel: !!process.env.VERCEL,
