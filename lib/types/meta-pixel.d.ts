@@ -81,8 +81,8 @@ export interface MetaPixelLogging {
 // Tipos para as configurações do Meta Pixel
 export interface MetaPixelConfig {
   PIXEL_ID: string
-  ACCESS_TOKEN: string
-  TEST_EVENT_CODE: string
+  ACCESS_TOKEN?: string
+  TEST_EVENT_CODE?: string
   DEDUPLICATION: {
     MAX_AGE_HOURS: number
   }

@@ -1,56 +1,9 @@
 // Configurações do Meta Pixel
 
-// Verificar status das variáveis de ambiente no carregamento
-if (typeof window !== 'undefined') {
-  // Executar após o carregamento do DOM para garantir que os logs apareçam
-  setTimeout(() => {
-    // Verificar se as variáveis de ambiente necessárias estão definidas
-    const hasApiToken = !!process.env.META_API_ACCESS_TOKEN;
-    const hasTestCode = !!process.env.META_TEST_EVENT_CODE;
-    const hasPixelId = !!process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
-    
-    if (!hasApiToken || !hasTestCode || !hasPixelId) {
-      console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META NÃO CONFIGURADAS ====================');
-      console.error('As seguintes variáveis de ambiente são obrigatórias:');
-      if (!hasApiToken) console.error('- META_API_ACCESS_TOKEN');
-      if (!hasTestCode) console.error('- META_TEST_EVENT_CODE');
-      if (!hasPixelId) console.error('- NEXT_PUBLIC_FACEBOOK_PIXEL_ID');
-      console.error('===================================================================');
-    }
-    
-    console.log('==================== DIAGNÓSTICO DE VARIÁVEIS META ====================');
-    console.log('META_API_ACCESS_TOKEN status:', {
-      exists: hasApiToken,
-      length: process.env.META_API_ACCESS_TOKEN?.length || 0,
-      preview: process.env.META_API_ACCESS_TOKEN 
-        ? `${process.env.META_API_ACCESS_TOKEN.substring(0, 4)}...${process.env.META_API_ACCESS_TOKEN.substring(process.env.META_API_ACCESS_TOKEN.length - 4)}`
-        : 'VAZIA',
-      env: process.env.NODE_ENV,
-      isVercel: !!process.env.VERCEL,
-      vercelEnv: process.env.VERCEL_ENV || 'não definido',
-      timestamp: new Date().toISOString()
-    });
-    console.log('META_TEST_EVENT_CODE:', {
-      value: process.env.META_TEST_EVENT_CODE,
-      source: 'process.env'
-    });
-    console.log('NEXT_PUBLIC_FACEBOOK_PIXEL_ID:', {
-      value: process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID,
-      exists: hasPixelId
-    });
-    console.log('===================================================================');
-  }, 500);
-}
-
-export const META_PIXEL_CONFIG = {
-  // ID do Pixel do Meta
+// Criação de configurações específicas para cliente e servidor
+const CLIENT_CONFIG = {
+  // ID do Pixel do Meta (disponível no cliente com prefixo NEXT_PUBLIC_)
   PIXEL_ID: process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID,
-
-  // Token de acesso para a API de Conversões
-  ACCESS_TOKEN: process.env.META_API_ACCESS_TOKEN,
-
-  // Código de teste para eventos
-  TEST_EVENT_CODE: process.env.META_TEST_EVENT_CODE,
 
   // Configurações de deduplicação
   DEDUPLICATION: {
@@ -94,7 +47,66 @@ export const META_PIXEL_CONFIG = {
     'page_title',
     'page_path',
   ] as const,
-} as const
+} as const;
+
+// Verificar status das variáveis de ambiente no carregamento (apenas no cliente)
+if (typeof window !== 'undefined') {
+  // Executar após o carregamento do DOM para garantir que os logs apareçam
+  setTimeout(() => {
+    // Verificar se as variáveis de ambiente necessárias estão definidas
+    const hasPixelId = !!process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
+    
+    if (!hasPixelId) {
+      console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META NÃO CONFIGURADAS ====================');
+      console.error('A seguinte variável de ambiente é obrigatória no cliente:');
+      console.error('- NEXT_PUBLIC_FACEBOOK_PIXEL_ID');
+      console.error('===================================================================');
+    }
+    
+    console.log('==================== DIAGNÓSTICO DE VARIÁVEIS META (CLIENTE) ====================');
+    console.log('NEXT_PUBLIC_FACEBOOK_PIXEL_ID:', {
+      value: process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID,
+      exists: hasPixelId
+    });
+    console.log('===================================================================');
+  }, 500);
+}
+
+// Exportar a configuração do cliente
+export const META_PIXEL_CONFIG = CLIENT_CONFIG;
+
+// Função para obter configuração do servidor (server-side only)
+// Esta função só deve ser chamada em arquivos do servidor (API routes, Server Components, etc.)
+export function getServerMetaConfig() {
+  // Verificar variáveis obrigatórias no servidor
+  const ACCESS_TOKEN = process.env.META_API_ACCESS_TOKEN;
+  const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE;
+  const SERVER_PIXEL_ID = process.env.FACEBOOK_PIXEL_ID || process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
+  
+  // Verificação apenas em ambiente de desenvolvimento
+  if (process.env.NODE_ENV === 'development') {
+    const hasApiToken = !!ACCESS_TOKEN;
+    const hasTestCode = !!TEST_EVENT_CODE;
+    const hasPixelId = !!SERVER_PIXEL_ID;
+    
+    if (!hasApiToken || !hasTestCode || !hasPixelId) {
+      console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META (SERVIDOR) NÃO CONFIGURADAS ====================');
+      console.error('As seguintes variáveis de ambiente são obrigatórias no servidor:');
+      if (!hasApiToken) console.error('- META_API_ACCESS_TOKEN');
+      if (!hasTestCode) console.error('- META_TEST_EVENT_CODE');
+      if (!hasPixelId) console.error('- FACEBOOK_PIXEL_ID');
+      console.error('===================================================================');
+    }
+  }
+  
+  // Retornar objeto de configuração do servidor
+  return {
+    ...CLIENT_CONFIG,
+    PIXEL_ID: SERVER_PIXEL_ID,
+    ACCESS_TOKEN,
+    TEST_EVENT_CODE,
+  };
+}
 
 // Tipos para os eventos padrão
 export type StandardEvent =
