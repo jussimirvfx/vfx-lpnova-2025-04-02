@@ -65,7 +65,9 @@ export async function middleware(request: NextRequest) {
     
     if (!externalId) {
       externalId = uuidv4()
-      console.log(`[Meta Middleware] Novo external_id gerado: ${externalId.substring(0, 8)}...`);
+      console.log(`[EXTERNAL_ID] NOVO ID GERADO: ${externalId}`);
+    } else {
+      console.log(`[EXTERNAL_ID] ID EXISTENTE ENCONTRADO: ${externalId}`);
     }
 
     // Capturar dados do usuário
@@ -90,10 +92,11 @@ export async function middleware(request: NextRequest) {
     
     // Definir/atualizar o cookie de external_id para identificação persistente
     if (isNewUser) {
+      console.log(`[EXTERNAL_ID] DEFININDO COOKIE: ${externalId}`);
       response.cookies.set({
         name: EXTERNAL_ID_COOKIE_NAME,
         value: externalId,
-        httpOnly: true,
+        httpOnly: false, // Alterado para permitir acesso no JavaScript
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         maxAge: 60 * 60 * 24 * 365, // 1 ano

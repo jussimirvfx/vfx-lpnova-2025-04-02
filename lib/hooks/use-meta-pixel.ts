@@ -152,15 +152,21 @@ function validateUniversalParameters(params: Record<string, any>): boolean {
 function getExternalId(): string | null {
   if (typeof document === 'undefined') return null;
 
+  console.log('[EXTERNAL_ID] Buscando nos cookies do cliente');
+  console.log('[EXTERNAL_ID] Todos os cookies:', document.cookie);
+  
   const cookies = document.cookie.split(';');
   
   for (let i = 0; i < cookies.length; i++) {
     const cookie = cookies[i].trim();
     if (cookie.startsWith(EXTERNAL_ID_COOKIE_NAME + '=')) {
-      return cookie.substring(EXTERNAL_ID_COOKIE_NAME.length + 1);
+      const value = cookie.substring(EXTERNAL_ID_COOKIE_NAME.length + 1);
+      console.log(`[EXTERNAL_ID] ENCONTRADO NO CLIENTE: ${value}`);
+      return value;
     }
   }
   
+  console.log('[EXTERNAL_ID] NÃO ENCONTRADO NO CLIENTE');
   return null;
 }
 
@@ -306,11 +312,14 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
     const externalId = getExternalId();
     if (externalId) {
       apiUserData.external_id = hashData(externalId);
-      logger.debug(
-        LogCategory.CONVERSION_API,
-        'external_id adicionado ao evento via API',
-        { idFound: !!externalId, idLength: externalId.length }
+      console.log(
+        '[EXTERNAL_ID] Adicionado ao evento da API:',
+        externalId,
+        '->',
+        apiUserData.external_id.substring(0, 10) + '...'
       );
+    } else {
+      console.log('[EXTERNAL_ID] Não disponível para evento da API');
     }
 
     // Adicionar dados do usuário do evento (ph, em, fn, etc.) se existirem
@@ -564,11 +573,14 @@ function sendPixelEvent(event: MetaPixelEvent): boolean {
     const externalId = getExternalId();
     if (externalId) {
       userData.external_id = hashData(externalId);
-      logger.debug(
-        LogCategory.META_PIXEL,
-        'external_id adicionado ao evento do Pixel',
-        { idLength: externalId.length }
+      console.log(
+        `[EXTERNAL_ID] Adicionado ao evento ${event.event_name} do Pixel:`,
+        externalId,
+        '->',
+        userData.external_id.substring(0, 10) + '...'
       );
+    } else {
+      console.log(`[EXTERNAL_ID] Não disponível para evento ${event.event_name} do Pixel`);
     }
     
     // Converter parâmetros para formato esperado pelo fbq

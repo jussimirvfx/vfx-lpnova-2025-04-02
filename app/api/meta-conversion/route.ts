@@ -89,9 +89,12 @@ export async function POST(request: Request) {
     if (metaData) {
       try {
         trackingData = JSON.parse(metaData.value) as TrackingData
+        console.log('[EXTERNAL_ID] Nos dados de tracking:', trackingData.external_id || 'AUSENTE');
       } catch (e) {
         console.error('[Meta API] Erro ao parsear dados de rastreamento:', e)
       }
+    } else {
+      console.log('[EXTERNAL_ID] Cookie __meta_data não encontrado');
     }
 
     // Verificar se é um evento PageView e adicionar tratamento especial
@@ -104,19 +107,28 @@ export async function POST(request: Request) {
     let externalId = trackingData.external_id
     if (!externalId) {
       // Tentar obter do cookie diretamente
-      externalId = cookiesList.get('_vfx_extid')?.value
+      const extIdCookie = cookiesList.get('_vfx_extid');
+      externalId = extIdCookie?.value;
       
       if (externalId) {
-        console.log('[Meta Conversion API] Obteve external_id do cookie: ' + externalId.substring(0, 8) + '...');
+        console.log(`[EXTERNAL_ID] ENCONTRADO NO COOKIE: ${externalId}`);
       } else {
         // Tentar obter do header (definido pelo middleware)
         externalId = headersList.get('x-external-id') || undefined
         if (externalId) {
-          console.log('[Meta Conversion API] Obteve external_id do header: ' + externalId.substring(0, 8) + '...');
+          console.log(`[EXTERNAL_ID] ENCONTRADO NO HEADER: ${externalId}`);
+        } else {
+          console.log('[EXTERNAL_ID] NÃO ENCONTRADO EM NENHUM LUGAR');
         }
       }
     } else {
-      console.log('[Meta Conversion API] Obteve external_id dos dados de tracking: ' + externalId.substring(0, 8) + '...');
+      console.log(`[EXTERNAL_ID] ENCONTRADO NOS DADOS DE TRACKING: ${externalId}`);
+    }
+
+    // Lista todos os cookies para debug
+    console.log('[EXTERNAL_ID] TODOS OS COOKIES:');
+    for (const [name, value] of cookiesList.getAll().entries()) {
+      console.log(`- Cookie ${name}: ${value.name}`);
     }
 
     // Preparar os dados do usuário com informações do servidor
