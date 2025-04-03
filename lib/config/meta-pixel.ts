@@ -2,8 +2,6 @@
 
 // Valores padrão embutidos (fallback) caso as variáveis de ambiente não estejam disponíveis
 const FALLBACK_VALUES = {
-  // Token de acesso para a API de Conversões (fallback para desenvolvimento/testes)
-  API_TOKEN: 'EAAP5yQs70lwBO0fduf8kMZBsu1dAG8X4yyQ4YuRjQ8gqDcJPu1Fn3m9psxoaamasgDnQ7DyOLx2wLBhzXFYmg5aric5lxxXNQn4DRv0uHlMNldZB9lcx2gppRMyzPZALKSGOQSzTSd8dDZBoZAslWBl7VTF6CmEHHdYAW3ysz4xIZCtl5tHZCMitAVOi6zdpeGUXgZDZD',
   // Código de teste para eventos
   TEST_CODE: 'TEST75192',
   // ID do Pixel
@@ -20,7 +18,7 @@ if (typeof window !== 'undefined') {
     const usingEnvPixelId = !!process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
     
     // Token real ou fallback
-    const actualApiToken = process.env.META_API_ACCESS_TOKEN || FALLBACK_VALUES.API_TOKEN;
+    const actualApiToken = process.env.META_API_ACCESS_TOKEN;
     const actualTestCode = process.env.META_TEST_EVENT_CODE || FALLBACK_VALUES.TEST_CODE;
     const actualPixelId = process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || FALLBACK_VALUES.PIXEL_ID;
     
@@ -28,7 +26,10 @@ if (typeof window !== 'undefined') {
     console.log('META_API_ACCESS_TOKEN status:', {
       exists: usingEnvApiToken,
       usingFallback: !usingEnvApiToken,
-      configured: !!actualApiToken,
+      length: actualApiToken?.length || 0,
+      preview: actualApiToken 
+        ? `${actualApiToken.substring(0, 8)}...${actualApiToken.substring(actualApiToken.length - 5)}`
+        : 'VAZIA',
       env: process.env.NODE_ENV,
       isVercel: !!process.env.VERCEL,
       vercelEnv: process.env.VERCEL_ENV || 'não definido',
@@ -51,7 +52,7 @@ export const META_PIXEL_CONFIG = {
   PIXEL_ID: process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || FALLBACK_VALUES.PIXEL_ID,
 
   // Token de acesso para a API de Conversões - usar valor padrão embutido caso a variável não exista
-  ACCESS_TOKEN: process.env.META_API_ACCESS_TOKEN || FALLBACK_VALUES.API_TOKEN,
+  ACCESS_TOKEN: process.env.META_API_ACCESS_TOKEN || '',
 
   // Código de teste para eventos - usar valor padrão embutido
   TEST_EVENT_CODE: process.env.META_TEST_EVENT_CODE || FALLBACK_VALUES.TEST_CODE,

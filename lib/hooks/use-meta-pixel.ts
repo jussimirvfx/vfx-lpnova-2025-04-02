@@ -355,17 +355,14 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
       }
     );
     
+    // Log do payload completo para depuração
     try {
-      // Log do payload completo para depuração
-      if (process.env.NODE_ENV === 'development') {
-        console.log('META API PAYLOAD:', {
-          eventName: event.event_name,
-          eventId: event.event_id,
-          hasUserData: !!payload.data[0].user_data,
-          hasCustomData: !!payload.data[0].custom_data,
-          testEventCode: payload.test_event_code
-        });
-      }
+      const payloadForLog = JSON.parse(JSON.stringify(payload));
+      const token = payloadForLog.access_token;
+      payloadForLog.access_token = token 
+        ? `${token.substring(0, 8)}...${token.substring(token.length - 5)}`
+        : '[VAZIO]';
+      console.log('META API PAYLOAD:', JSON.stringify(payloadForLog, null, 2));
     } catch (e) {
       // Ignore erro de serialize
     }

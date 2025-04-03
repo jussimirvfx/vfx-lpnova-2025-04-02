@@ -17,6 +17,7 @@ export interface MetaConversionParams {
   custom_data?: Record<string, any>
   event_source_id?: string
   opt_out?: boolean
+  access_token?: string
 }
 
 // Função para gerar um ID de evento único para deduplicação
@@ -269,6 +270,9 @@ export async function sendToMetaConversionApi(params: MetaConversionParams): Pro
     has_fbp: !!params.user_data.fbp,
     has_email: !!params.user_data.em,
     has_phone: !!params.user_data.ph,
+    access_token: params.access_token 
+      ? `${params.access_token.substring(0, 8)}...${params.access_token.substring(params.access_token.length - 5)}`
+      : '[VAZIO]'
   });
 
   while (attempt <= maxRetries) {
@@ -310,26 +314,6 @@ export async function sendToMetaConversionApi(params: MetaConversionParams): Pro
         const delay = getBackoffDelay(attempt - 1);
         console.log(`[Meta Conversion API] Aguardando ${delay}ms antes da próxima tentativa...`);
         await new Promise(resolve => setTimeout(resolve, delay));
-      }
-
-      // Registra resposta completa para depuração
-      try {
-        const responseBody = await response.clone().text();
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`META API RESPONSE (${response.status}):`, {
-            status: response.status,
-            success: response.ok,
-            hasBody: !!responseBody
-          });
-          
-          logger.debug(
-            LogCategory.CONVERSION_API,
-            `Resposta API (status: ${response.status})`,
-            { success: response.ok }
-          );
-        }
-      } catch (e) {
-        // Ignorar erros ao ler corpo duplicado
       }
     } catch (error) {
       lastError = error;
