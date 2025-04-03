@@ -205,15 +205,13 @@ async function sendConversionAPI(event: MetaPixelEvent, retryCount = 0): Promise
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    // Verificar se temos token de acesso configurado antes de enviar
-    if (!META_PIXEL_CONFIG.ACCESS_TOKEN) {
-      logger.warn(
-        LogCategory.CONVERSION_API,
-        'API de Conversão não enviada: TOKEN não configurado',
-        { eventName: event.event_name }
-      );
-      return false;
-    }
+    // No cliente, não verificamos o token - a API do servidor cuidará disso
+    // Apenas registramos que o token não é visível no cliente por design
+    logger.debug(
+      LogCategory.CONVERSION_API,
+      'TOKEN não visível no cliente, a API verificará a disponibilidade',
+      { eventName: event.event_name }
+    );
     
     // Extrair FBP e FBC para user_data
     const fbp = document.cookie.match(/_fbp=([^;]+)/)?.pop() || null;

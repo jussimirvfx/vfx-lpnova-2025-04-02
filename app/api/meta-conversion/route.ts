@@ -29,10 +29,22 @@ const META_PIXEL_ID = serverConfig.PIXEL_ID;
 const META_ACCESS_TOKEN = serverConfig.ACCESS_TOKEN;
 const TEST_EVENT_CODE = serverConfig.TEST_EVENT_CODE;
 
+// Log detalhado das variáveis para diagnóstico
+console.log('==================== DIAGNÓSTICO DE VARIÁVEIS META (SERVIDOR) ====================');
+console.log('META_PIXEL_ID:', META_PIXEL_ID ? `${META_PIXEL_ID.substring(0, 4)}...` : 'não definido');
+console.log('META_ACCESS_TOKEN:', META_ACCESS_TOKEN ? `${META_ACCESS_TOKEN.substring(0, 4)}...${META_ACCESS_TOKEN.substring(META_ACCESS_TOKEN.length - 4)}` : 'não definido');
+console.log('TEST_EVENT_CODE:', TEST_EVENT_CODE || 'não definido');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('VERCEL_ENV:', process.env.VERCEL_ENV || 'não definido');
+console.log('===================================================================');
+
 // Verificar se as variáveis de ambiente necessárias estão definidas
 if (!META_PIXEL_ID || !META_ACCESS_TOKEN || !TEST_EVENT_CODE) {
   console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META NÃO CONFIGURADAS ====================');
-  console.error('As variáveis de ambiente do servidor não estão configuradas corretamente.');
+  console.error('As seguintes variáveis de ambiente do servidor não estão configuradas corretamente:');
+  if (!META_PIXEL_ID) console.error('- FACEBOOK_PIXEL_ID / NEXT_PUBLIC_FACEBOOK_PIXEL_ID');
+  if (!META_ACCESS_TOKEN) console.error('- META_API_ACCESS_TOKEN');
+  if (!TEST_EVENT_CODE) console.error('- META_TEST_EVENT_CODE');
   console.error('===================================================================');
 }
 
