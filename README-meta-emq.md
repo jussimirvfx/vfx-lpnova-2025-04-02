@@ -1,3 +1,6 @@
+# Meta Pixel EMQ Integration Documentation
+# Updated: 2025-04-02
+
 # Checklist Exaustivo para Implementação de Rastreamento Meta Pixel e API de Conversões
 
 > **Nota**: Não altere esse arquivo, ele é para consulta apenas.
