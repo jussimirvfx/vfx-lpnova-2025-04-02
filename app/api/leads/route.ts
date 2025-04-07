@@ -280,17 +280,48 @@ export async function POST(request: Request) {
 
           // Preparar payload no formato correto (estrutura plana)
           const webhookData = {
+            // Dados de contato básicos
             phone: formattedPhone,
             name: leadData.name || "",
             email: leadData.email || "",
             company: leadData.company || "",
+            
+            // Dados de qualificação
             sales_team_size: leadData.sales_team_size || "",
             monthly_revenue: leadData.monthly_revenue || "",
             segment: leadData.segment || "",
             message: leadData.message || "",
+            site: leadData.site || "",  // Site ou Instagram da empresa
+            
+            // Dados de lead scoring e qualificação
+            lead_score: leadData.lead_score || 0,
+            qualified: leadData.qualified ? "Sim" : "Não", // Convertido para string para compatibilidade
+            qualification_reason: leadData.qualification_reason || "",
+            
+            // Dados de fonte e origem
             source: leadData.source || "Website",
             form_type: leadData.form_type || "",
             page_url: leadData.page_url || "https://vendas.agenciavfx.com.br/",
+            referrer: leadData.referrer || "",
+            
+            // Dados de UTM para rastreamento de campanhas
+            utm_source: leadData.utm_source || "",
+            utm_medium: leadData.utm_medium || "",
+            utm_campaign: leadData.utm_campaign || "",
+            utm_term: leadData.utm_term || "",
+            utm_content: leadData.utm_content || "",
+            
+            // IDs de rastreamento
+            gclid: leadData.gclid || "",  // Google Click ID
+            fbclid: leadData.fbclid || "",  // Facebook Click ID
+            fbc: leadData.fbc || "",  // Facebook Cookie
+            fbp: leadData.fbp || "",  // Facebook Browser ID
+            
+            // ID externo para correlacionar com eventos da API de Conversão
+            external_id: leadData.event_id || `lead_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            
+            // Timestamp da criação
+            created_at: leadData.created_at || new Date().toISOString()
           }
 
           console.log("[API:leads] [GoHighLevel] Enviando dados para o CRM:", {
@@ -298,7 +329,9 @@ export async function POST(request: Request) {
             form_type: leadData.form_type,
             data: {
               ...webhookData,
-              phone: webhookData.phone ? webhookData.phone.substring(0, 5) + "..." : null
+              phone: webhookData.phone ? webhookData.phone.substring(0, 5) + "..." : null,
+              email: webhookData.email ? webhookData.email.substring(0, 3) + "***" : null,
+              external_id: webhookData.external_id
             }
           });
 

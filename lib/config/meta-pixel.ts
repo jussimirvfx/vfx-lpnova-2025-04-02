@@ -83,40 +83,20 @@ export function getServerMetaConfig() {
   const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE;
   const SERVER_PIXEL_ID = process.env.FACEBOOK_PIXEL_ID || process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID;
   
-  // Verificação em todos os ambientes, não apenas desenvolvimento
-  const hasApiToken = !!ACCESS_TOKEN;
-  const hasTestCode = !!TEST_EVENT_CODE;
-  const hasPixelId = !!SERVER_PIXEL_ID;
-  
-  // Mostrar todas as variáveis de ambiente que começam com META ou FACEBOOK
-  console.log('============ DIAGNÓSTICO COMPLETO DE VARIÁVEIS (SERVIDOR) ============');
-  console.log('Todas as variáveis disponíveis:');
-  Object.keys(process.env).filter(key => 
-    key.startsWith('META_') || 
-    key.startsWith('FACEBOOK_') || 
-    key.startsWith('NEXT_PUBLIC_FACEBOOK_')
-  ).forEach(key => {
-    const value = process.env[key];
-    console.log(`- ${key}: ${value ? 
-      (key.includes('TOKEN') ? 
-        `${value.substring(0, 4)}...${value.length > 8 ? value.substring(value.length - 4) : ''}` 
-        : key.includes('PIXEL_ID') ? 
-          `${value.substring(0, 5)}...` 
-          : value
-      ) 
-      : 'não definido'}`);
-  });
-  console.log('===================================================================');
-  
-  if (!hasApiToken || !hasTestCode || !hasPixelId) {
-    console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META (SERVIDOR) NÃO CONFIGURADAS ====================');
-    console.error('As seguintes variáveis de ambiente são obrigatórias no servidor:');
-    if (!hasApiToken) console.error('- META_API_ACCESS_TOKEN');
-    if (!hasTestCode) console.error('- META_TEST_EVENT_CODE');
-    if (!hasPixelId) console.error('- FACEBOOK_PIXEL_ID');
-    console.error('Ambiente atual:', process.env.NODE_ENV);
-    console.error('Ambiente Vercel:', process.env.VERCEL_ENV || 'não definido');
-    console.error('===================================================================');
+  // Verificação apenas em ambiente de desenvolvimento
+  if (process.env.NODE_ENV === 'development') {
+    const hasApiToken = !!ACCESS_TOKEN;
+    const hasTestCode = !!TEST_EVENT_CODE;
+    const hasPixelId = !!SERVER_PIXEL_ID;
+    
+    if (!hasApiToken || !hasTestCode || !hasPixelId) {
+      console.error('==================== ERRO: VARIÁVEIS DE AMBIENTE META (SERVIDOR) NÃO CONFIGURADAS ====================');
+      console.error('As seguintes variáveis de ambiente são obrigatórias no servidor:');
+      if (!hasApiToken) console.error('- META_API_ACCESS_TOKEN');
+      if (!hasTestCode) console.error('- META_TEST_EVENT_CODE');
+      if (!hasPixelId) console.error('- FACEBOOK_PIXEL_ID');
+      console.error('===================================================================');
+    }
   }
   
   // Retornar objeto de configuração do servidor
