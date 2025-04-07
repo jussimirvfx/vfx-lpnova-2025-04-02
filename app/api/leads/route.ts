@@ -169,7 +169,9 @@ export async function POST(request: Request) {
       "site",
       "lead_score",
       "qualified",
-      "qualification_reason"
+      "qualification_reason",
+      "external_id",
+      "event_id"
     ]
 
     const filteredData = Object.keys(leadData)
@@ -187,6 +189,7 @@ export async function POST(request: Request) {
       ...filteredData,
       created_at: new Date().toISOString(),
       facebook_pixel_id: process.env.FACEBOOK_PIXEL_ID || null,
+      external_id: leadData.event_id || `lead_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
     }
 
     console.log("[API:leads] Dados preparados para inserção:", {
@@ -318,7 +321,7 @@ export async function POST(request: Request) {
             fbp: leadData.fbp || "",  // Facebook Browser ID
             
             // ID externo para correlacionar com eventos da API de Conversão
-            external_id: leadData.event_id || `lead_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            external_id: leadWithTimestamp.external_id,
             
             // Timestamp da criação
             created_at: leadData.created_at || new Date().toISOString()

@@ -31,6 +31,10 @@ function sanitizeLeadData(lead: Lead) {
     country_code: lead.country_code || null,
     page_url: lead.page_url || null,
     facebook_pixel_id: lead.facebook_pixel_id || null,
+    lead_score: lead.lead_score || null,
+    qualified: lead.qualified || null,
+    qualification_reason: lead.qualification_reason || null,
+    external_id: lead.external_id || null,
   }
 }
 

@@ -29,6 +29,8 @@ function formatFormData(formData: FormData, source: string, formType: string) {
   const site = (formData.get("site") as string)?.trim()
   const lead_score = Number(formData.get("lead_score")) || 0
   const pageUrl = formData.get("pageUrl") as string
+  // Capturar o ID externo se disponível
+  const external_id = formData.get("external_id") as string || null
 
   // Validar dados obrigatórios
   if (!name || !email || !phone || !countryCode || !segment || !company || !message) {
@@ -50,6 +52,7 @@ function formatFormData(formData: FormData, source: string, formType: string) {
     country_code: countryCode,
     page_url: pageUrl,
     form_type: formType,
+    external_id: external_id || `lead_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
   }
 }
 

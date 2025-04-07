@@ -23,6 +23,7 @@ export interface Database {
           lead_score: number | null
           qualified: boolean | null
           qualification_reason: string | null
+          external_id: string | null
           qualification_details: {
             segment: string;
             monthlyRevenue: string;
@@ -51,6 +52,7 @@ export interface Database {
           lead_score?: number | null
           qualified?: boolean | null
           qualification_reason?: string | null
+          external_id?: string | null
           qualification_details?: {
             segment: string;
             monthlyRevenue: string;
