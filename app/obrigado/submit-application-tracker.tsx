@@ -53,7 +53,8 @@ export default function SubmitApplicationTracker() {
         console.log('[SubmitApplication] Processando evento para lead qualificado', {
           eventId,
           leadId: applicationData.lead_id,
-          score: leadScore
+          score: leadScore,
+          formType: applicationData.form_type || 'não especificado'
         });
         
         // Enviar evento SubmitApplication
@@ -76,11 +77,17 @@ export default function SubmitApplicationTracker() {
             hasFbc: !!userData.fbc
           });
           
+          // Determinar o nome do conteúdo com base no tipo de formulário
+          let contentName = 'Aplicação para Reunião';
+          if (applicationData.form_type === 'formulario_apresentacao') {
+            contentName = 'Aplicação para Apresentação';
+          }
+          
           // Preparar dados do evento - manter consistência com o evento Lead
           const eventData = {
             value: applicationData.value,
             currency: applicationData.currency || 'BRL',
-            content_name: 'Aplicação para Reunião',
+            content_name: contentName,
             content_category: 'Lead Qualified',
             lead_score: leadScore,
             // Incluir dados do lead para manter consistência
@@ -95,6 +102,7 @@ export default function SubmitApplicationTracker() {
             leadId: applicationData.lead_id,
             value: applicationData.value,
             score: leadScore,
+            formType: applicationData.form_type,
             // Adicionar logs detalhados dos dados do usuário
             hasUserData: true,
             userData: {

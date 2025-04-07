@@ -4,6 +4,7 @@ import { Facebook, Instagram, Linkedin } from "lucide-react"
 import Link from "next/link"
 import ClientPageView from "./page-view-client"
 import LeadTracker from "./lead-tracker"
+import SubmitApplicationTracker from "@/app/obrigado/submit-application-tracker"
 
 export const viewport: Viewport = {
   themeColor: "#187eff",
@@ -24,6 +25,7 @@ export default function PresentationThankYouPage() {
       {/* Componentes para rastreamento de analytics */}
       <ClientPageView />
       <LeadTracker />
+      <SubmitApplicationTracker />
 
       {/* Header */}
       <header className="bg-white shadow-sm">

@@ -304,6 +304,59 @@ Certifique-se de que estas variáveis estão configuradas corretamente no seu am
     }
     ```
 
+## Eventos Específicos para Formulários da VFX
+
+### Formulários com Rastreamento Completo
+
+Atualmente, os seguintes formulários implementam o sistema completo de rastreamento de eventos do Meta Pixel:
+
+1. **Formulário de Reunião WhatsApp** (`form_type: "formulario_reuniao_whatsapp"`)
+   - Dispara o evento **Contact** ao preencher o formulário
+   - Dispara o evento **Lead** na página de obrigado, para todos os leads
+   - Dispara o evento **SubmitApplication** apenas para leads qualificados (lead_score > 0)
+   - Aplicação de lead scoring e qualificação completa
+
+2. **Formulário de Apresentação** (`form_type: "formulario_apresentacao"`)
+   - Dispara o evento **Contact** ao preencher o formulário
+   - Dispara o evento **ViewContent** ao carregar a página de apresentação
+   - Dispara o evento **Lead** na página de obrigado, para todos os leads
+   - Dispara o evento **SubmitApplication** apenas para leads qualificados (lead_score > 0)
+   - Aplicação dos mesmos critérios de lead scoring e qualificação que o formulário de reunião WhatsApp
+
+3. **Formulário de WhatsApp Simples** (`form_type: "formulario_whatsapp"`)
+   - Dispara apenas o evento **Contact** ao preencher o formulário
+   - Não possui lead scoring ou qualificação
+
+### Fluxo de Eventos e Qualificação
+
+Para os formulários completos (Reunião WhatsApp e Apresentação), o fluxo de eventos é:
+
+1. **Preenchimento de Formulário**:
+   - Usuário preenche o formulário com seus dados
+   - Sistema calcula o lead score com base em: segmento, faturamento mensal, tamanho da equipe
+   - Lead é qualificado se `lead_score > 0`
+   - Dados são enviados para a API e Supabase
+   - Evento **Contact** é disparado imediatamente
+
+2. **Na Página de Obrigado/Apresentação**:
+   - Dados do lead são armazenados em `localStorage` como `pendingLeadEvent`
+   - Evento **Lead** é disparado para todos os leads (valor monetário 0 para não qualificados)
+   - Se qualificado, dados são preparados para **SubmitApplication** e armazenados em `localStorage`
+   - Evento **SubmitApplication** é disparado apenas para leads qualificados (lead_score > 0)
+
+3. **Valor Monetário**:
+   - Leads qualificados: valor calculado com base no score (0-100)
+   - Leads não qualificados: valor sempre 0
+
+### Implementação de Novos Formulários
+
+Para adicionar rastreamento a um novo formulário, siga este padrão:
+
+1. No componente do formulário, adicione o evento **Contact** ao enviar
+2. Implemente o cálculo de lead_score usando a função `calculateLeadScore` de `/lib/lead-scoring.ts`
+3. Armazene os dados do lead no `localStorage` após o envio bem-sucedido
+4. Use os mesmos trackers na página de destino para processar eventos **Lead** e **SubmitApplication**
+
 ## Extensibilidade
 
 -   **Novos Eventos**: Crie arquivos em `/lib/meta-tracking/events` e atualize o `switch` em `useMetaPixel.js`.

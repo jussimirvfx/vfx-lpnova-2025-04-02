@@ -135,13 +135,13 @@
 - [ ] Validar que não dispara em caso de falha na submissão do formulário
 - [ ] Verificar se os parâmetros de contato são incluídos (de forma hasheada)
 
-## 7. Evento Lead (Formulário Reunião WhatsApp)
+## 7. Evento Lead (Qualificação de Leads)
 
 ### API de Conversões:
 
 - [ ] Confirmar que a API de Lead é disparada ANTES do Pixel
-- [ ] Confirmar envio do evento Lead para TODOS os usuários que submetem o formulário de Reunião WhatsApp e chegam à página de obrigado (tanto leads qualificados quanto não qualificados)
-- [ ] Verificar se o evento dispara apenas quando a página de obrigado é carregada após submissão do formulário
+- [ ] Verificar se o evento Lead é disparado para TODOS os leads que submeteram o formulário de Reunião WhatsApp ou o formulário de Apresentação
+- [ ] Confirmar que o evento é disparado quando a página de obrigado/apresentação carrega após o envio bem-sucedido do formulário
 - [ ] Verificar se custom_data inclui:
   - [ ] value calculado pelo lead scoring (0 para leads não qualificados)
   - [ ] currency
@@ -152,7 +152,7 @@
 
 ### Pixel no Navegador:
 
-- [ ] Verificar se o evento dispara quando a página de obrigado carrega após o envio bem-sucedido do formulário de Reunião WhatsApp (para TODOS os leads)
+- [ ] Verificar se o evento dispara quando a página de obrigado/apresentação carrega após o envio bem-sucedido do formulário de Reunião WhatsApp ou formulário de Apresentação (para TODOS os leads)
 - [ ] Confirmar que o value está sendo calculado e enviado corretamente:
   - [ ] Leads qualificados: valor baseado no lead score (1-100)
   - [ ] Leads não qualificados: valor 0
@@ -165,8 +165,8 @@
 ### API de Conversões:
 
 - [ ] Confirmar que a API de SubmitApplication é disparada ANTES do Pixel
-- [ ] Verificar se o evento SubmitApplication é disparado APENAS para leads qualificados que submeteram o formulário de Reunião WhatsApp
-- [ ] Confirmar que o evento é disparado logo após o evento Lead quando a página de obrigado carrega (apenas para leads qualificados)
+- [ ] Verificar se o evento SubmitApplication é disparado APENAS para leads qualificados que submeteram o formulário de Reunião WhatsApp ou o formulário de Apresentação
+- [ ] Confirmar que o evento é disparado logo após o evento Lead quando a página de obrigado/apresentação carrega (apenas para leads qualificados)
 - [ ] Verificar se custom_data inclui:
   - [ ] value calculado pelo lead scoring (mesmo valor do evento Lead)
   - [ ] currency (mesmo do evento Lead)
@@ -176,8 +176,8 @@
 
 ### Pixel no Navegador:
 
-- [ ] Verificar se o evento dispara quando a página de obrigado carrega após envio bem-sucedido do formulário de Reunião WhatsApp (APENAS para leads qualificados)
-- [ ] Confirmar que o evento é disparado logo após o evento Lead quando a página de obrigado carrega (apenas para leads qualificados)
+- [ ] Verificar se o evento dispara quando a página de obrigado/apresentação carrega após envio bem-sucedido do formulário de Reunião WhatsApp ou formulário de Apresentação (APENAS para leads qualificados)
+- [ ] Confirmar que o evento é disparado logo após o evento Lead quando a página de obrigado/apresentação carrega (apenas para leads qualificados)
 - [ ] Validar se o value está sendo enviado de forma consistente com o evento Lead
 - [ ] Verificar se currency está definido junto com value (ex: "BRL")
 - [ ] Confirmar que não há múltiplos disparos na mesma sessão
