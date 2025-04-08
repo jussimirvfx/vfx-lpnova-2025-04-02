@@ -141,14 +141,14 @@ export default function LeadTracker() {
 
           // Enviar evento GA4 via gtag (cliente)
           // Usar o mesmo identificador do Meta para deduplicação GA4
-          sendGA4Event('generate_lead', ga4EventParams, leadIdentifier);
+          sendGA4Event('Lead', ga4EventParams, leadIdentifier);
 
           // Preparar dados para Measurement Protocol
           const ga4MpEventData = {
               // non_personalized_ads: false, // Opcional
               // user_properties: { ... } // Opcional
               events: [{
-                  name: 'generate_lead',
+                  name: 'Lead',
                   params: {
                       ...ga4EventParams,
                       // Parâmetros adicionais específicos do servidor, se houver

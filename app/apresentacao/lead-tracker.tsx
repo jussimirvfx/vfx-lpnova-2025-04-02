@@ -222,7 +222,7 @@ export default function LeadTracker() {
           markEventAsSent("Lead", leadIdentifier, { eventId: metaEventId, score, qualified: isQualified });
 
           // --- Envio GA4 (novo) ---
-          // Mapear parâmetros Meta para GA4 (evento generate_lead)
+          // Mapear parâmetros Meta para GA4 (evento Lead, antes generate_lead)
           const ga4EventParams = {
             value: value,
             currency: 'BRL',
@@ -235,14 +235,14 @@ export default function LeadTracker() {
           };
 
           // Enviar evento GA4 via gtag (cliente)
-          sendGA4Event('generate_lead', ga4EventParams, leadIdentifier);
+          sendGA4Event('Lead', ga4EventParams, leadIdentifier);
 
           // Preparar dados para Measurement Protocol
           const ga4MpEventData = {
               // non_personalized_ads: false,
               // user_properties: { ... },
               events: [{
-                  name: 'generate_lead',
+                  name: 'Lead',
                   params: {
                       ...ga4EventParams,
                       // Parâmetros adicionais do servidor, se houver
