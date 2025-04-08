@@ -5,6 +5,8 @@ import { useState, useEffect } from "react"
 import { PhoneIcon as WhatsappIcon, ArrowRight } from "lucide-react"
 import { generateEventId } from "@/lib/meta-conversion-api"
 import { getMetaParams, prepareUserData } from "@/lib/meta-utils"
+import { sendGA4Event, sendMeasurementProtocolEvent } from "@/lib/ga4/events"
+import { isEventAlreadySent, markEventAsSent } from "@/lib/event-deduplication"
 
 export function WhatsAppForm() {
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -68,6 +70,12 @@ export function WhatsAppForm() {
       // Salvar o número no localStorage para uso em outros formulários
       localStorage.setItem("whatsappNumber", phoneNumber)
 
+      // Verificar se o evento já foi enviado recentemente
+      const formIdentifier = `contact_whatsapp_${formattedNumber}`;
+      if (isEventAlreadySent("Contact", formIdentifier)) {
+        console.log("[WhatsAppForm] Evento Contact já enviado recentemente, ignorando duplicação");
+      }
+
       // Preparar dados do lead para scoring e tracking
       const leadData = {
         phone: `+${formattedNumber}`,
@@ -114,6 +122,34 @@ export function WhatsAppForm() {
             hasPhoneHash: !!userData.ph?.[0],
             phoneHash: userData.ph?.[0]?.substring(0, 8) + "..."
           });
+          
+          // --- Envio GA4 (novo) ---
+          const ga4EventParams = {
+              item_name: "Top WhatsApp Form", // Equivalente a content_name
+              item_category: "WhatsApp Submission", // Equivalente a content_category
+              // Adicionar outros parâmetros GA4 relevantes se necessário
+          };
+
+          // Enviar evento GA4 via gtag (cliente)
+          // Usar o número de telefone como identificador único para deduplicação neste form
+          sendGA4Event('Whatsapp', ga4EventParams, `whatsapp_${formattedNumber}`);
+
+          // Preparar dados para Measurement Protocol
+          // Reutiliza dados já disponíveis, mas não envia PII diretamente
+          const ga4MpEventData = {
+            events: [{
+              name: 'Whatsapp',
+              params: {
+                  ...ga4EventParams,
+              }
+            }]
+          };
+
+          // Enviar evento GA4 via Measurement Protocol (servidor)
+          sendMeasurementProtocolEvent(ga4MpEventData);
+          
+          // Marcar evento como enviado
+          markEventAsSent("Contact", formIdentifier, { eventId });
         } else {
           // Fallback para importação dinâmica se a função global não estiver disponível
           const { trackPixelEvent } = await import("@/lib/facebook-pixel-init");
