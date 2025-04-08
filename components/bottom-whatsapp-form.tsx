@@ -26,10 +26,9 @@ export function BottomWhatsAppForm() {
   }, [])
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value
-    // Permitir apenas números, remover quaisquer caracteres não numéricos
-    const numericInput = input.replace(/\D/g, "")
-    setPhoneNumber(numericInput)
+    const input = e.target.value;
+    // Usar a função formatPhoneNumber para formatar o número enquanto digita
+    setPhoneNumber(formatPhoneNumber(input));
   }
 
   const openModal = async (number: string) => {
