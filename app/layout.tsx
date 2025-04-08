@@ -114,7 +114,11 @@ export default function RootLayout({
                     cookie_expires: 63072000 // 2 anos em segundos
                   });
                   
-                  console.log('[GA4] Inicializado com ID: ${GA4_MEASUREMENT_ID}');
+                  console.log('[GA4] Inicializado com ID: ' + '${GA4_MEASUREMENT_ID}');
+                  console.log('[GA4] Debug - ID de medição: ' + '${process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID}');
+                  
+                  // Para depuração - mostra o ID correto no console
+                  console.log('[GA4] Measurement ID:', '${GA4_MEASUREMENT_ID}');
                   
                   // Configurar o Next.js para rastrear mudanças de rota e enviar page_view
                   if (typeof window !== 'undefined') {
