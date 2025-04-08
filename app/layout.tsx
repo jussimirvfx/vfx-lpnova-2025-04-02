@@ -90,12 +90,6 @@ export default function RootLayout({
               id="ga4-gtag-script"
               strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
-              onLoad={() => {
-                console.log('[GA4] Script gtag.js carregado com sucesso');
-              }}
-              onError={(e) => {
-                console.error('[GA4] Erro ao carregar script gtag.js:', e);
-              }}
             />
             <Script
               id="ga4-init"
@@ -114,11 +108,8 @@ export default function RootLayout({
                     cookie_expires: 63072000 // 2 anos em segundos
                   });
                   
-                  console.log('[GA4] Inicializado com ID: ' + '${GA4_MEASUREMENT_ID}');
-                  console.log('[GA4] Debug - ID de medição: ' + '${process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID}');
-                  
-                  // Para depuração - mostra o ID correto no console
-                  console.log('[GA4] Measurement ID:', '${GA4_MEASUREMENT_ID}');
+                  // Log para depuração
+                  console.log('[GA4] Inicializado com ID:', '${GA4_MEASUREMENT_ID}');
                   
                   // Configurar o Next.js para rastrear mudanças de rota e enviar page_view
                   if (typeof window !== 'undefined') {
@@ -143,12 +134,6 @@ export default function RootLayout({
                     };
                   }
                 `,
-              }}
-              onLoad={() => {
-                console.log('[GA4] Configuração inicializada');
-              }}
-              onError={(e) => {
-                console.error('[GA4] Erro ao inicializar configuração:', e);
               }}
             />
           </>
