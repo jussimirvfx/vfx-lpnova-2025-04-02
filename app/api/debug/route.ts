@@ -1,84 +1,83 @@
-import { NextResponse } from "next/server"
-import { headers } from "next/headers"
-import { supabase } from "@/lib/supabase"
+/**
+ * API route para debug de conexões
+ * Para verificar o funcionamento do GA4 e suas variáveis
+ */
 
-export const runtime = "nodejs"
+import { NextRequest, NextResponse } from 'next/server';
+import { GA4_CONFIG } from '@/lib/ga4-tracking/config/ga4-config';
 
-export async function GET(request: Request) {
-  const headersList = headers()
-  const origin = headersList.get("origin") || "*"
-
-  const corsHeaders = {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  }
-
-  try {
-    // Verificar variáveis de ambiente
-    const supabaseUrl = process.env.SUPABASELEADS_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASELEADS_SUPABASE_SERVICE_ROLE_KEY
-    const facebookPixelId = process.env.FACEBOOK_PIXEL_ID
-
-    const envStatus = {
-      hasSupabaseUrl: !!supabaseUrl,
-      hasSupabaseKey: !!supabaseKey,
-      hasFacebookPixelId: !!facebookPixelId,
-      urlPrefix: supabaseUrl ? supabaseUrl.substring(0, 8) + "..." : "AUSENTE",
-      environment: process.env.NODE_ENV || "unknown",
-      timestamp: new Date().toISOString(),
-    }
-
-    // Testar conexão com Supabase
-    let connectionStatus = { success: false, error: null, count: 0 }
+export async function GET(request: NextRequest) {
+  // Verificar as configurações do GA4
+  const ga4Config = {
+    MEASUREMENT_ID: GA4_CONFIG.MEASUREMENT_ID ? 'Configurado' : 'Não configurado',
+    API_SECRET: GA4_CONFIG.API_SECRET ? 'Configurado (valor não exibido)' : 'Não configurado',
+    DEBUG_ENDPOINT: GA4_CONFIG.DEBUG_ENDPOINT,
+    LOGGING_ENABLED: GA4_CONFIG.LOGGING.ENABLED,
+  };
+  
+  // Verificar configurações de segurança/ambiente
+  const env = {
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV || 'não definido',
+    IS_LOCAL_DEVELOPMENT: process.env.NODE_ENV === 'development',
+  };
+  
+  // Testar a conexão com o GA4 Measurement Protocol
+  let ga4ConnectionTest = { success: false, message: 'Não testado' };
+  
+  if (GA4_CONFIG.MEASUREMENT_ID && GA4_CONFIG.API_SECRET) {
     try {
-      const { data, error, count } = await supabase.from("leads").select("id", { count: "exact" }).limit(1)
-
-      connectionStatus = {
-        success: !error,
-        error: error
-          ? {
-              message: error.message,
-              code: error.code,
-              hint: error.hint,
+      // Endpoint de validação
+      const validationUrl = `${GA4_CONFIG.DEBUG_ENDPOINT}?measurement_id=${GA4_CONFIG.MEASUREMENT_ID}&api_secret=${GA4_CONFIG.API_SECRET}`;
+      
+      // Payload de teste
+      const testPayload = {
+        client_id: 'debug-client-id.123456789',
+        events: [
+          {
+            name: 'debug_event',
+            params: {
+              debug_mode: true,
+              timestamp: Date.now(),
             }
-          : null,
-        count: count || 0,
-      }
+          }
+        ]
+      };
+      
+      // Enviar requisição de teste
+      const response = await fetch(validationUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(testPayload),
+      });
+      
+      // Verificar resposta
+      const data = await response.text();
+      
+      ga4ConnectionTest = {
+        success: response.ok,
+        message: response.ok ? 'Conexão bem-sucedida' : 'Falha na conexão',
+        status: response.status,
+        responseData: data.substring(0, 500) // Limitar tamanho da resposta
+      };
     } catch (error) {
-      connectionStatus = {
+      ga4ConnectionTest = {
         success: false,
-        error:
-          error instanceof Error
-            ? {
-                message: error.message,
-                stack: error.stack,
-              }
-            : "Unknown error",
-        count: 0,
-      }
+        message: 'Erro ao testar conexão',
+        error: String(error)
+      };
     }
-
-    return NextResponse.json(
-      {
-        success: true,
-        environment: envStatus,
-        connection: connectionStatus,
-        timestamp: new Date().toISOString(),
-      },
-      { headers: corsHeaders },
-    )
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined,
-        timestamp: new Date().toISOString(),
-      },
-      { status: 500, headers: corsHeaders },
-    )
   }
+  
+  // Retornar resultados
+  return NextResponse.json({
+    timestamp: new Date().toISOString(),
+    ga4Config,
+    env,
+    ga4ConnectionTest
+  });
 }
 
 export async function OPTIONS() {

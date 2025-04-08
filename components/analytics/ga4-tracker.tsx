@@ -29,11 +29,19 @@ export function GA4Tracker({ measurementId }: GA4TrackerProps) {
     }
   }, [isInitialized, trackPageView])
 
+  // Não usar o ID 'ga4-base-script', pode estar causando conflito
   return (
     <>
+      {/* Carregar o script do gtag.js */}
+      <Script
+        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
+        strategy="afterInteractive"
+        id="ga4-gtag-loader"
+      />
+
       {/* Script principal do GA4 */}
       <Script
-        id="ga4-base-script"
+        id="ga4-init-script"
         strategy="afterInteractive"
         onLoad={() => {
           console.log(`[${GA4_CONFIG.LOGGING.PREFIX}] Script do GA4 carregado com sucesso`)
@@ -47,6 +55,7 @@ export function GA4Tracker({ measurementId }: GA4TrackerProps) {
           if (typeof window !== 'undefined' && !window._ga4ScriptLoaded) {
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
             gtag('js', new Date());
             gtag('config', '${measurementId}', { send_page_view: false });
             
@@ -54,17 +63,10 @@ export function GA4Tracker({ measurementId }: GA4TrackerProps) {
             window._ga4ScriptLoaded = true;
             
             // Log para Debug
-            console.log('[GA4] Base script loaded successfully');
+            console.log('[Google Analytics] Script loaded successfully');
           }
         `}
       </Script>
-
-      {/* Carregar o script do gtag.js */}
-      <Script
-        src={`https://www.googletagmanager.com/gtag/js?id=${measurementId}`}
-        strategy="afterInteractive"
-        id="ga4-gtag-script"
-      />
     </>
   )
 } 

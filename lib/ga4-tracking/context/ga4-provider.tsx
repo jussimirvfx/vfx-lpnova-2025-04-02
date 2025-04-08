@@ -63,16 +63,21 @@ export function GA4Provider({ children }: GA4ProviderProps) {
   useEffect(() => {
     if (typeof window === "undefined") return
     
-    // Evita múltiplas inicializações
-    if (window._ga4Initialized) {
-      console.log(`[${GA4_CONFIG.LOGGING.PREFIX}] GA4 já inicializado anteriormente, pulando inicialização`)
-      setInitializationCompleted(true)
-      return
-    }
-
-    // Iniciar rastreamento dos eventos do GA4
-    // Coloca um pequeno delay para garantir que o script base foi carregado
-    setTimeout(() => {
+    // Evita múltiplas inicializações - aguardar gtag estar disponível
+    const initializeGA4 = () => {
+      // Verificar se o contêiner já foi inicializado
+      if (window._ga4Initialized) {
+        console.log(`[${GA4_CONFIG.LOGGING.PREFIX}] GA4 já inicializado anteriormente, pulando inicialização`)
+        setInitializationCompleted(true)
+        return
+      }
+      
+      // Se o gtag não estiver disponível, esperar um pouco mais
+      if (!window.gtag) {
+        setTimeout(initializeGA4, 500)
+        return
+      }
+      
       initialize()
       setInitializationCompleted(true)
       
@@ -83,7 +88,10 @@ export function GA4Provider({ children }: GA4ProviderProps) {
         console.log('GA4_API_SECRET status:', GA4_CONFIG.API_SECRET ? 'Configurado (não visível no cliente)' : 'Não configurado')
         console.log('===================================================================')
       }
-    }, 300)
+    }
+    
+    // Iniciar verificação com um pequeno delay para garantir que os scripts já foram carregados
+    setTimeout(initializeGA4, 1000)
   }, [initialize])
 
   // Efeito para enviar PageView após a inicialização
@@ -103,7 +111,7 @@ export function GA4Provider({ children }: GA4ProviderProps) {
         
         console.log(`[${GA4_CONFIG.LOGGING.PREFIX}] page_view inicial enviado`)
       }, 100)
-    }, 600) // Um pouco mais do que o Meta Pixel para priorizar o Meta
+    }, 800) // Um pouco mais do que o Meta Pixel para priorizar o Meta
     
     return () => clearTimeout(timer)
   }, [isInitialized, trackPageView, pageViewSent, initializationCompleted])

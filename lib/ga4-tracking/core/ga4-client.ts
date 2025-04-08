@@ -89,15 +89,12 @@ export function initializeGA4(): boolean {
     console.log(`[${GA4_CONFIG.LOGGING.PREFIX}] Inicializando GA4 com ID: ${GA4_CONFIG.MEASUREMENT_ID}`);
   }
   
-  // Inicializar o objeto dataLayer
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function() { window.dataLayer?.push(arguments); };
-  
-  // Função para enviar eventos do GA4
-  window.gtag('js', new Date());
-  window.gtag('config', GA4_CONFIG.MEASUREMENT_ID, {
-    send_page_view: false, // Não enviar page_view automaticamente, faremos isso manualmente
-  });
+  // Verificar se o gtag já foi definido pelo script carregado
+  if (!window.gtag && window.dataLayer) {
+    window.gtag = function(...args) { 
+      window.dataLayer?.push(arguments); 
+    };
+  }
   
   // Definir a função global para enviar eventos
   window.sendGA4Event = async (eventName, params = {}, options = {}) => {
@@ -169,16 +166,29 @@ export async function sendEvent(
       
       // Se solicitado, enviar também para o servidor via Measurement Protocol
       if (options.sendToServer) {
-        // Importar dinamicamente para evitar problemas de SSR
-        import('../api/measurement-protocol').then(({ sendToMeasurementProtocol }) => {
-          const clientId = getClientId();
-          if (clientId) {
-            sendToMeasurementProtocol(eventName, {
-              ...finalParams,
-              client_id: clientId,
+        // Usar a API personalizada em vez do Measurement Protocol direto
+        const clientId = getClientId();
+        if (clientId) {
+          try {
+            await fetch('/api/ga4', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                event_name: eventName,
+                client_id: clientId,
+                params: finalParams
+              })
             });
+            
+            if (GA4_CONFIG.LOGGING.ENABLED) {
+              console.log(`[${GA4_CONFIG.LOGGING.PREFIX}] Evento ${eventName} enviado para o servidor`);
+            }
+          } catch (error) {
+            console.error(`[${GA4_CONFIG.LOGGING.PREFIX}] Erro ao enviar evento ${eventName} para o servidor:`, error);
           }
-        });
+        }
       }
       
       return true;
