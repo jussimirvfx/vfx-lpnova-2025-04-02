@@ -6,6 +6,9 @@ import { META_PIXEL_CONFIG } from "@/lib/config/meta-pixel"
 import { MetaPixelProvider } from "@/components/providers/meta-pixel-provider"
 import { MetaPixel } from "@/components/analytics/meta-pixel"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { MetaPixelInitializer } from "@/components/layout/MetaPixelInitializer"
+import { GA4Initializer } from "@/components/layout/GA4Initializer"
+import { MetaGA4Gateway } from "@/components/layout/MetaGA4Gateway"
 
 // Definir fonte Inter como secundária
 const inter = Inter({ 
@@ -58,6 +61,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://www.facebook.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://www.google-analytics.com" />
         
         {/* Preload das versões mais grossas da fonte prioritariamente */}
         <link
@@ -83,6 +88,11 @@ export default function RootLayout({
           {children}
           <Toaster />
           <SpeedInsights />
+          
+          {/* Inicializadores de rastreamento */}
+          <MetaPixelInitializer />
+          <GA4Initializer />
+          <MetaGA4Gateway />
         </MetaPixelProvider>
       </body>
     </html>
