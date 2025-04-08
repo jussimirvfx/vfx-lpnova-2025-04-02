@@ -36,128 +36,174 @@ export function BottomWhatsAppForm() {
     if (isSubmitting) return; // Evitar cliques múltiplos
     setIsSubmitting(true);
 
-    // Normalizar número para formato internacional (ex: +5511999998888)
-    let normalizedNumber = number.trim().replace(/\D/g, "");
-    if (normalizedNumber.length === 10 || normalizedNumber.length === 11) {
-      // Adicionar prefixo 55 se não tiver
-      normalizedNumber = `55${normalizedNumber}`;
-    }
-
-    if (normalizedNumber.length < 12 || normalizedNumber.length > 13) {
-      toast({
-        title: "Erro",
-        description: "Número de telefone inválido. Use o formato (XX) XXXXX-XXXX.",
-        variant: "destructive",
-      })
-      setIsSubmitting(false);
-      return
-    }
-
-    // Obter fbc e fbp (já estava presente)
-    const fbc = getFbc()
-    const fbp = getFbp()
-
-    // Registrar fbc e fbp para debug
-    console.log("[BottomWhatsAppForm] FBC e FBP para rastreamento:", {
-      hasFbc: !!fbc,
-      fbcSample: fbc ? fbc.substring(0, 12) + "..." : "não encontrado",
-      hasFbp: !!fbp,
-      fbpSample: fbp ? fbp.substring(0, 12) + "..." : "não encontrado"
-    });
-
-    // Track Facebook Pixel event com lead scoring
-    if (typeof window !== "undefined") {
-      // Verificar se a função global do Meta está disponível
-      if (window.sendMetaEvent) {
-        // Gerar um ID de evento único para deduplicação entre pixel e API
-        const metaEventId = generateEventId(); // ID específico para Meta
-
-        // Obter parâmetros do Meta
-        const metaParams = getMetaParams();
-
-        // Preparar dados do usuário com telefone hasheado para Meta
-        const metaUserData = prepareUserData({
-          phone: normalizedNumber,
-          fbc: metaParams.fbc,
-          fbp: metaParams.fbp
-        });
-
-        // --- Envio Meta (existente) ---
-        window.sendMetaEvent(
-          "Contact",
-          {
-            content_name: "Bottom WhatsApp Form",
-            content_category: "WhatsApp Submission",
-          },
-          {
-            user_data: metaUserData,
-            eventID: metaEventId,
-          },
-        );
-
-        console.log("[BottomWhatsAppForm] Evento 'Contact' Meta enviado com ID: " + metaEventId);
-        console.log("[BottomWhatsAppForm] Dados do usuário Meta:", {
-          phone: normalizedNumber.substring(0, 4) + "***",
-          hasFbc: !!metaParams.fbc,
-          hasFbp: !!metaParams.fbp,
-          hasPhoneHash: !!metaUserData.ph?.[0],
-          phoneHash: metaUserData.ph?.[0]?.substring(0, 8) + "..."
-        });
-
-        // --- Envio GA4 (novo) ---
-        const ga4EventParams = {
-            item_name: "Bottom WhatsApp Form", // Equivalente a content_name
-            item_category: "WhatsApp Submission", // Equivalente a content_category
-            // Adicionar outros parâmetros GA4 relevantes se necessário
-        };
-
-        // Enviar evento GA4 via gtag (cliente)
-        // Usar o número de telefone como identificador único para deduplicação neste form
-        sendGA4Event('contact', ga4EventParams, `whatsapp_${normalizedNumber}`);
-
-        // Preparar dados para Measurement Protocol
-        // Reutiliza dados já disponíveis, mas não envia PII diretamente
-        const ga4MpEventData = {
-          // client_id será obtido automaticamente pela função sendMeasurementProtocolEvent
-          // non_personalized_ads: false, // Opcional: configurar com base no consentimento
-          user_properties: { // Propriedades do usuário (opcional)
-            // user_language: { value: navigator.language }, // Exemplo
-          },
-          events: [{
-            name: 'contact',
-            params: {
-                ...ga4EventParams,
-                // Adicionar parâmetros específicos do servidor se necessário
-                // Ex: source_platform: 'web'
-                // NÃO ENVIAR PII (telefone) DIRETAMENTE AQUI
-                // O Google recomenda usar User-ID ou dados fornecidos pelo usuário (com consentimento)
-                // que são hasheados pelo Google.
-                 // 'phone_hash': hashed_phone_number // Exemplo se tivéssemos o hash SHA256
-            }
-          }]
-        };
-
-        // Enviar evento GA4 via Measurement Protocol (servidor)
-        sendMeasurementProtocolEvent(ga4MpEventData);
-
-      } else {
-          console.warn("[BottomWhatsAppForm] window.sendMetaEvent não disponível.");
+    try {
+      // Normalizar número para formato internacional (ex: +5511999998888)
+      let normalizedNumber = number.trim().replace(/\D/g, "");
+      if (normalizedNumber.length === 10 || normalizedNumber.length === 11) {
+        // Adicionar prefixo 55 se não tiver
+        normalizedNumber = `55${normalizedNumber}`;
       }
 
-      // Abrir WhatsApp após rastreamento
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${normalizedNumber}&text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20os%20servi%C3%A7os%20da%20VFX.`
-      window.open(whatsappUrl, "_blank")
+      if (normalizedNumber.length < 12 || normalizedNumber.length > 13) {
+        toast({
+          title: "Erro",
+          description: "Número de telefone inválido. Use o formato (XX) XXXXX-XXXX.",
+          variant: "destructive",
+        })
+        setIsSubmitting(false);
+        return;
+      }
 
+      // Verificar se o evento já foi enviado recentemente
+      const formIdentifier = `contact_whatsapp_${normalizedNumber}`;
+      if (isEventAlreadySent("Contact", formIdentifier)) {
+        console.log("[BottomWhatsAppForm] Evento Contact já enviado recentemente, ignorando duplicação");
+        
+        // Continuar abrindo o modal mesmo que o evento já tenha sido enviado
+        const modal = document.getElementById("contactModal");
+        if (modal) {
+          localStorage.setItem("whatsappNumber", number);
+          modal.style.display = "flex";
+        }
+        
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Obter fbc e fbp
+      const fbc = getFbc();
+      const fbp = getFbp();
+
+      // Registrar fbc e fbp para debug
+      console.log("[BottomWhatsAppForm] FBC e FBP para rastreamento:", {
+        hasFbc: !!fbc,
+        fbcSample: fbc ? fbc.substring(0, 12) + "..." : "não encontrado",
+        hasFbp: !!fbp,
+        fbpSample: fbp ? fbp.substring(0, 12) + "..." : "não encontrado"
+      });
+
+      // Track evento de Contact 
+      if (typeof window !== "undefined") {
+        // Verificar se a função global do Meta está disponível
+        if (window.sendMetaEvent) {
+          // Gerar um ID de evento único para deduplicação entre pixel e API
+          const metaEventId = generateEventId(); // ID específico para Meta
+
+          // Obter parâmetros do Meta
+          const metaParams = getMetaParams();
+
+          // Preparar dados do usuário com telefone hasheado para Meta
+          const metaUserData = prepareUserData({
+            phone: normalizedNumber,
+            fbc: metaParams.fbc,
+            fbp: metaParams.fbp
+          });
+
+          // --- Envio Meta (existente) ---
+          window.sendMetaEvent(
+            "Contact",
+            {
+              content_name: "Bottom WhatsApp Form",
+              content_category: "WhatsApp Submission",
+            },
+            {
+              user_data: metaUserData,
+              eventID: metaEventId,
+            },
+          );
+
+          console.log("[BottomWhatsAppForm] Evento 'Contact' Meta enviado com ID: " + metaEventId);
+          console.log("[BottomWhatsAppForm] Dados do usuário Meta:", {
+            phone: normalizedNumber.substring(0, 4) + "***",
+            hasFbc: !!metaParams.fbc,
+            hasFbp: !!metaParams.fbp,
+            hasPhoneHash: !!metaUserData.ph?.[0],
+            phoneHash: metaUserData.ph?.[0]?.substring(0, 8) + "..."
+          });
+
+          // --- Envio GA4 (novo) ---
+          const ga4EventParams = {
+              item_name: "Bottom WhatsApp Form", // Equivalente a content_name
+              item_category: "WhatsApp Submission", // Equivalente a content_category
+              // Adicionar outros parâmetros GA4 relevantes se necessário
+          };
+
+          // Enviar evento GA4 via gtag (cliente)
+          // Usar o número de telefone como identificador único para deduplicação neste form
+          sendGA4Event('contact', ga4EventParams, `whatsapp_${normalizedNumber}`);
+
+          // Preparar dados para Measurement Protocol
+          // Reutiliza dados já disponíveis, mas não envia PII diretamente
+          const ga4MpEventData = {
+            events: [{
+              name: 'contact',
+              params: {
+                  ...ga4EventParams,
+              }
+            }]
+          };
+
+          // Enviar evento GA4 via Measurement Protocol (servidor)
+          sendMeasurementProtocolEvent(ga4MpEventData);
+          
+          // Marcar evento como enviado
+          markEventAsSent("Contact", formIdentifier, { eventId: metaEventId });
+        } else {
+          console.warn("[BottomWhatsAppForm] window.sendMetaEvent não disponível.");
+        }
+      }
+      
+      // Enviar dados para API (se necessário)
+      try {
+        // Preparar dados do lead (se necessário)
+        const leadData = {
+          phone: normalizedNumber,
+          source: "Bottom WhatsApp Form",
+          form_type: "formulario_whatsapp",
+          page_url: window.location.href,
+        };
+        
+        // Fazer chamada para API interna (se necessário)
+        // const response = await fetch("/api/leads", {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify(leadData),
+        // });
+        
+        console.log("[BottomWhatsAppForm] Dados preparados para formulário:", {
+          phone: normalizedNumber.substring(0, 4) + "***",
+          source: leadData.source,
+          form_type: leadData.form_type
+        });
+      } catch (apiError) {
+        console.error("[BottomWhatsAppForm] Erro ao processar dados:", apiError);
+        // Não interromper o fluxo por causa do erro
+      }
+      
+      // PARTE RESTAURADA: Abrir o modal do formulário em vez de redirecionar para o WhatsApp
+      const modal = document.getElementById("contactModal");
+      if (modal) {
+        localStorage.setItem("whatsappNumber", number);
+        modal.style.display = "flex";
+        document.body.style.overflow = "hidden"; // Prevenir scroll
+      } else {
+        console.error("[BottomWhatsAppForm] Modal não encontrado no DOM");
+        toast({
+          title: "Erro",
+          description: "Não foi possível abrir o formulário de contato.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("[BottomWhatsAppForm] Erro inesperado:", error);
       toast({
-        title: "Sucesso",
-        description: "Abrindo conversa no WhatsApp...",
-      })
-
-    } else {
-        console.warn("[BottomWhatsAppForm] Fora do ambiente do navegador.");
+        title: "Erro",
+        description: "Ocorreu um erro ao processar sua solicitação.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false); // Habilitar botão novamente
     }
-
-    setIsSubmitting(false); // Habilitar botão novamente
   }
 
   const handleSubmit = (e: React.FormEvent) => {
