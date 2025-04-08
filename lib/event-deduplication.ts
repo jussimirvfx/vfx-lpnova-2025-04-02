@@ -15,10 +15,9 @@ const EVENT_EXPIRATION = {
   VideoPlay: 10 * 60 * 1000,        // 10 minutos em ms
   
   // GA4 events - usar os mesmos tempos de expiração dos eventos Meta equivalentes
-  generate_lead: 24 * 60 * 60 * 1000,     // 24 horas (como Lead)
-  contact: 1 * 60 * 60 * 1000,            // 1 hora (como Contact)
-  view_item: 30 * 60 * 1000,              // 30 minutos (como ViewContent)
-  QualifiedLead: 24 * 60 * 60 * 1000,       // 24 horas (como SubmitApplication)
+  Whatsapp: 1 * 60 * 60 * 1000,  // 1 hora (como Contact)
+  VerApresentacao: 30 * 60 * 60 * 1000,  // 30 minutos (como ViewContent) - antes era view_item
+  QualifiedLead: 24 * 60 * 60 * 1000,  // 24 horas (como SubmitApplication)
   scroll: 15 * 60 * 1000,                 // 15 minutos (como Scroll)
   page_view: 5 * 60 * 1000,               // 5 minutos (como PageView)
   video_progress: 10 * 60 * 1000,         // 10 minutos (como VideoPlay)
@@ -52,8 +51,8 @@ type NamespaceType = 'META' | 'GA4' | 'DEFAULT';
 function getNamespaceByEventName(eventName: string): NamespaceType {
   // Eventos GA4 padrão e custom
   const ga4Events = [
-    'page_view', 'scroll', 'view_item', 'generate_lead', 'QualifiedLead',
-    'contact', 'video_start', 'video_progress', 'video_complete'
+    'page_view', 'scroll', 'VerApresentacao', 'Lead', 'QualifiedLead', 
+    'Whatsapp', 'video_start', 'video_progress', 'video_complete'
   ];
   
   // Eventos Meta/Facebook padrão

@@ -103,7 +103,7 @@ export default function LeadTracker() {
           markEventAsSent("ViewContent", contentIdentifier, { eventId: metaEventId });
 
           // --- Envio GA4 (novo) ---
-          // Mapear parâmetros Meta para GA4 (evento view_item)
+          // Mapear parâmetros Meta para GA4 (evento VerApresentacao, antes view_item)
           const ga4EventParams = {
               currency: metaEventData.currency,
               value: 0, // ViewContent geralmente não tem valor, mas GA4 recomenda enviar 0
@@ -118,14 +118,14 @@ export default function LeadTracker() {
 
           // Enviar evento GA4 via gtag (cliente)
           // Usar o mesmo identificador do Meta para deduplicação GA4
-          sendGA4Event('view_item', ga4EventParams, contentIdentifier);
+          sendGA4Event('VerApresentacao', ga4EventParams, contentIdentifier);
 
           // Preparar dados para Measurement Protocol
           const ga4MpEventData = {
               // non_personalized_ads: false, // Opcional
               // user_properties: { ... } // Opcional
               events: [{
-                  name: 'view_item',
+                  name: 'VerApresentacao',
                   params: {
                       ...ga4EventParams,
                       // Parâmetros adicionais específicos do servidor, se houver
@@ -133,7 +133,7 @@ export default function LeadTracker() {
                   }
               }]
           };
-          // Não enviamos ViewContent/view_item via MP por padrão, pois geralmente é menos crítico
+          // Não enviamos ViewContent/VerApresentacao via MP por padrão, pois geralmente é menos crítico
           // e já capturado pelo gtag. Descomente a linha abaixo se quiser enviar mesmo assim.
           // sendMeasurementProtocolEvent(ga4MpEventData);
           // --- Fim Envio GA4 ---
