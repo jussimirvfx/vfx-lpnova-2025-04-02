@@ -5,6 +5,7 @@ import Link from "next/link"
 import ClientPageView from "./page-view-client"
 import LeadTracker from "./lead-tracker"
 import SubmitApplicationTracker from "./submit-application-tracker"
+import GA4InitChecker from "@/components/analytics/ga4-init-checker"
 
 export const viewport: Viewport = {
   themeColor: "#187eff",
@@ -28,6 +29,7 @@ export default function ThankYouPage() {
       {/* Componentes client para rastreamento de eventos */}
       <LeadTracker />
       <SubmitApplicationTracker />
+      <GA4InitChecker />
 
       {/* Header */}
       <header className="bg-white shadow-sm">

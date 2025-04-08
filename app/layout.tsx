@@ -87,14 +87,19 @@ export default function RootLayout({
         {GA4_MEASUREMENT_ID && (
           <>
             <Script
-              strategy="beforeInteractive"
+              id="ga4-gtag-script"
+              strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
-              onLoad={() => console.log('GA4: Script gtag.js carregado com sucesso')}
-              onError={() => console.error('GA4: Erro ao carregar o script gtag.js')}
+              onLoad={() => {
+                console.log('[GA4] Script gtag.js carregado com sucesso');
+              }}
+              onError={(e) => {
+                console.error('[GA4] Erro ao carregar script gtag.js:', e);
+              }}
             />
             <Script
               id="ga4-init"
-              strategy="beforeInteractive"
+              strategy="afterInteractive"
               dangerouslySetInnerHTML={{
                 __html: `
                   window.dataLayer = window.dataLayer || [];
@@ -103,11 +108,13 @@ export default function RootLayout({
 
                   gtag('config', '${GA4_MEASUREMENT_ID}', {
                     page_path: window.location.pathname,
-                    send_page_view: true,
+                    send_page_view: true, // Permitir o page_view inicial, para página de entrada
                     cookie_flags: 'SameSite=None;Secure',
                     cookie_domain: window.location.hostname,
                     cookie_expires: 63072000 // 2 anos em segundos
                   });
+                  
+                  console.log('[GA4] Inicializado com ID: ${GA4_MEASUREMENT_ID}');
                   
                   // Configurar o Next.js para rastrear mudanças de rota e enviar page_view
                   if (typeof window !== 'undefined') {
@@ -121,6 +128,7 @@ export default function RootLayout({
                       if (window.previousPath === newPath) return;
                       
                       // Atualizar o path no config e enviar o page_view
+                      console.log('[GA4] Mudança de rota detectada:', newPath);
                       gtag('config', '${GA4_MEASUREMENT_ID}', {
                         page_path: newPath,
                         page_title: document.title
@@ -129,69 +137,14 @@ export default function RootLayout({
                       // Atualizar o path anterior
                       window.previousPath = newPath;
                     };
-
-                    // Verificar se o GA4 está funcionando corretamente
-                    window.addEventListener('load', function() {
-                      if (typeof gtag === 'function') {
-                        console.log('GA4: gtag está disponível globalmente, inicialização bem-sucedida');
-                      } else {
-                        console.error('GA4: gtag não está disponível globalmente após carregamento da página');
-                      }
-                    });
                   }
                 `,
               }}
-            />
-            {/* Script adicional para garantir que o GA4 está disponível em todas as páginas */}
-            <Script
-              id="ga4-validation"
-              strategy="afterInteractive"
-              dangerouslySetInnerHTML={{
-                __html: `
-                  // Este script é executado depois que a página está interativa
-                  console.log('GA4: Validando disponibilidade do gtag');
-                  
-                  function validateGA4() {
-                    if (typeof window.gtag !== 'function') {
-                      console.warn('GA4: gtag não está disponível, tentando recarregar...');
-                      
-                      // Tentar recarregar o script do GA4
-                      const scriptElement = document.createElement('script');
-                      scriptElement.async = true;
-                      scriptElement.src = 'https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}';
-                      document.head.appendChild(scriptElement);
-                      
-                      // Reinicializar o GA4
-                      scriptElement.onload = function() {
-                        window.dataLayer = window.dataLayer || [];
-                        function gtag(){dataLayer.push(arguments);}
-                        window.gtag = gtag;
-                        gtag('js', new Date());
-                        gtag('config', '${GA4_MEASUREMENT_ID}');
-                        console.log('GA4: Script recarregado e reinicializado com sucesso');
-                      };
-                    } else {
-                      console.log('GA4: gtag está disponível na página atual');
-                    }
-                  }
-                  
-                  // Executar a validação imediatamente
-                  validateGA4();
-                  
-                  // E também após a navegação (importante para páginas como /obrigado e /apresentacao)
-                  if (typeof window !== 'undefined') {
-                    if ('navigation' in window.performance) {
-                      const navType = window.performance.navigation.type;
-                      console.log('GA4: Tipo de navegação:', navType);
-                      
-                      // 0 é navegação direta, 1 é recarga, 2 é voltar/avançar
-                      if (navType === 0) {
-                        // Navegação direta - verificar após um curto delay
-                        setTimeout(validateGA4, 500);
-                      }
-                    }
-                  }
-                `,
+              onLoad={() => {
+                console.log('[GA4] Configuração inicializada');
+              }}
+              onError={(e) => {
+                console.error('[GA4] Erro ao inicializar configuração:', e);
               }}
             />
           </>
