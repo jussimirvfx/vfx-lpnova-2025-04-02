@@ -3,12 +3,13 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { META_PIXEL_CONFIG } from "@/lib/config/meta-pixel"
-import { GA4_CONFIG } from "@/lib/config/ga4"
 import { MetaPixelProvider } from "@/components/providers/meta-pixel-provider"
-import { GA4Provider } from "@/components/providers/ga4-provider"
 import { MetaPixel } from "@/components/analytics/meta-pixel"
-import { GA4Tag } from "@/components/analytics/ga4-tag"
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { GA4Provider } from "@/lib/ga4-tracking/context/ga4-provider"
+import { GA4Tracker } from "@/components/analytics/ga4-tracker"
+import { GA4_CONFIG } from "@/lib/ga4-tracking/config/ga4-config"
+import GA4ViewContentTracker from "@/components/analytics/ga4-view-content-tracker"
 
 // Definir fonte Inter como secundária
 const inter = Inter({ 
@@ -59,10 +60,10 @@ export default function RootLayout({
         {/* Preconnect para domínios importantes */}
         <link rel="preconnect" href="https://connect.facebook.net" />
         <link rel="preconnect" href="https://www.facebook.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://www.google-analytics.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
         {/* Preload das versões mais grossas da fonte prioritariamente */}
         <link
@@ -84,19 +85,11 @@ export default function RootLayout({
       </head>
       <body className={`${plusJakartaSans.variable} ${inter.variable} font-plus-jakarta`}>
         <MetaPixelProvider>
+          <MetaPixel pixelId={META_PIXEL_CONFIG.PIXEL_ID} />
           <GA4Provider>
-            {/* Meta Pixel - Carrega script e dispara PageView inicial */}
-            <MetaPixel pixelId={META_PIXEL_CONFIG.PIXEL_ID} />
-            
-            {/* GA4 - Carrega script e dispara PageView inicial */}
-            {GA4_CONFIG.MEASUREMENT_ID && (
-              <GA4Tag measurementId={GA4_CONFIG.MEASUREMENT_ID} />
-            )}
-            
-            {/* Conteúdo principal */}
+            <GA4Tracker measurementId={GA4_CONFIG.MEASUREMENT_ID} />
+            <GA4ViewContentTracker />
             {children}
-            
-            {/* UI components */}
             <Toaster />
             <SpeedInsights />
           </GA4Provider>
