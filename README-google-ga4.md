@@ -6,7 +6,7 @@
 - [ ] Criar função que verifica se o evento generate_lead já foi disparado pelo usuário atual (compatível com evento Lead do Meta)
 - [ ] Criar função que verifica se o evento sign_up já foi disparado pelo usuário atual (compatível com evento SubmitApplication do Meta)
 - [ ] Criar função que verifica se o evento contact já foi disparado pelo usuário atual (compatível com evento Contact do Meta)
-- [ ] Criar função que verifica se o evento view_item já foi disparado pelo usuário atual (compatível com evento ViewContent do Meta)
+- [ ] Criar função que verifica se o evento VerApresentacao já foi disparado pelo usuário atual (compatível com evento ViewContent do Meta)
 - [ ] Implementar validação antes de cada disparo de evento para verificar se já foi enviado anteriormente
 - [ ] Adicionar timestamp para cada evento gravado para possível expiração (opcional)
 - [ ] Implementar a mesma lógica de prevenção tanto para o GA4 quanto para o Measurement Protocol
@@ -203,21 +203,21 @@
 - [ ] Verificar se o sistema de deduplicação previne múltiplos envios em sincronia com o sistema Meta
 - [ ] Verificar se o evento dispara antes do redirecionamento (se houver)
 - [ ] Validar que não dispara em caso de falha na submissão do formulário
-- [ ] Verificar se os parâmetros de contato são incluídos (anonimizados quando necessário)## 5. Evento view_item (Equivalente ao ViewContent do Meta)
+- [ ] Verificar se os parâmetros de contato são incluídos (anonimizados quando necessário)## 5. Evento VerApresentacao (Equivalente ao ViewContent do Meta)
 
 
 ### Measurement Protocol:
 
 
-- [ ] Confirmar que o Measurement Protocol de view_item é disparado em paralelo à CAPI de ViewContent
-- [ ] Confirmar envio do evento view_item nos mesmos momentos que o ViewContent
+- [ ] Confirmar que o Measurement Protocol de VerApresentacao é disparado em paralelo à CAPI de ViewContent
+- [ ] Confirmar envio do evento VerApresentacao nos mesmos momentos que o ViewContent
 - [ ] Verificar se event_params inclui os mesmos parâmetros:
  - [ ] item_name (equivalente ao content_name do Meta)
  - [ ] item_category (equivalente ao content_category do Meta)
  - [ ] item_id (se aplicável, equivalente ao content_ids do Meta)
 - [ ] Validar sincronização temporal entre os dois sistemas
 - [ ] Verificar se o sistema de deduplicação previne múltiplos envios usando a mesma lógica do Meta
-- [ ] Confirmar que o evento view_item é independente e não substitui os eventos generate_lead e sign_up
+- [ ] Confirmar que o evento VerApresentacao é independente e não substitui os eventos generate_lead e sign_up
 
 
 ### GA4 no Navegador:
@@ -228,7 +228,7 @@
 - [ ] Verificar se inclui item_category se aplicável (equivalente ao content_category do Meta)
 - [ ] Validar que o disparo ocorre após o page_view
 - [ ] Verificar se o sistema de deduplicação previne múltiplos envios aproveitando a lógica do Meta
-- [ ] Garantir que o evento view_item é tratado como um evento distinto dos eventos generate_lead e sign_up## 4. Evento scroll (Equivalente ao Scroll do Meta)
+- [ ] Garantir que o evento VerApresentacao é tratado como um evento distinto dos eventos generate_lead e sign_up## 4. Evento scroll (Equivalente ao Scroll do Meta)
 
 
 ### Measurement Protocol:
@@ -378,21 +378,21 @@
 - [ ] Validar que o evento só é enviado após o page_view, seguindo o mesmo fluxo do Meta Pixel
 
 
-## 5. Evento view_item (Equivalente ao ViewContent do Meta)
+## 5. Evento VerApresentacao (Equivalente ao ViewContent do Meta)
 
 
 ### Measurement Protocol:
 
 
-- [ ] Confirmar que o Measurement Protocol de view_item é disparado em paralelo à CAPI de ViewContent
-- [ ] Confirmar envio do evento view_item nos mesmos momentos que o ViewContent
+- [ ] Confirmar que o Measurement Protocol de VerApresentacao é disparado em paralelo à CAPI de ViewContent
+- [ ] Confirmar envio do evento VerApresentacao nos mesmos momentos que o ViewContent
 - [ ] Verificar se event_params inclui os mesmos parâmetros:
  - [ ] item_name (equivalente ao content_name do Meta)
  - [ ] item_category (equivalente ao content_category do Meta)
  - [ ] item_id (se aplicável, equivalente ao content_ids do Meta)
 - [ ] Validar sincronização temporal entre os dois sistemas
 - [ ] Verificar se o sistema de deduplicação previne múltiplos envios usando a mesma lógica do Meta
-- [ ] Confirmar que o evento view_item é independente e não substitui os eventos generate_lead e sign_up
+- [ ] Confirmar que o evento VerApresentacao é independente e não substitui os eventos generate_lead e sign_up
 
 
 ### GA4 no Navegador:
@@ -403,7 +403,7 @@
 - [ ] Verificar se inclui item_category se aplicável (equivalente ao content_category do Meta)
 - [ ] Validar que o disparo ocorre após o page_view
 - [ ] Verificar se o sistema de deduplicação previne múltiplos envios aproveitando a lógica do Meta
-- [ ] Garantir que o evento view_item é tratado como um evento distinto dos eventos generate_lead e sign_up
+- [ ] Garantir que o evento VerApresentacao é tratado como um evento distinto dos eventos generate_lead e sign_up
 
 
 ## 6. Evento contact (Equivalente ao Contact do Meta)
@@ -416,4 +416,19 @@
 - [ ] Confirmar envio do evento contact no servidor nos mesmos momentos que o evento Meta
 - [ ] Verificar se contém informações equivalentes às enviadas pelo Meta
 - [ ] Verificar se o sistema de deduplicação previne múltiplos envios usando dados já validados pelo Meta
-- [
+- [ ] Validar que todos os dados do usuário disponíveis são enviados (anonimizados quando necessário)
+- [ ] Confirmar que event_params inclui:
+ - [ ] item_name (equivalente ao content_name do Meta)
+ - [ ] item_category (se aplicável, equivalente ao content_category do Meta)
+ - [ ] form_status (se aplicável, equivalente ao success_status do Meta)
+
+
+### GA4 no Navegador:
+
+
+- [ ] Verificar se o evento dispara ao submeter o formulário de WhatsApp, junto com o evento Contact do Meta
+- [ ] Confirmar que captura parâmetros como item_name (ex: "Formulário WhatsApp")
+- [ ] Verificar se o sistema de deduplicação previne múltiplos envios em sincronia com o sistema Meta
+- [ ] Verificar se o evento dispara antes do redirecionamento (se houver)
+- [ ] Validar que não dispara em caso de falha na submissão do formulário
+- [ ] Verificar se os parâmetros de contato são incluídos (anonimizados quando necessário)
