@@ -5,6 +5,7 @@ import { generateEventId } from "@/lib/meta-conversion-api"
 import { isEventAlreadySent, markEventAsSent } from "@/lib/event-deduplication"
 import { getMetaParams, prepareUserData } from "@/lib/meta-utils"
 import { scoreToMonetaryValue } from "@/lib/lead-scoring"
+import { sendGA4Event, sendMeasurementProtocolEvent } from "@/lib/ga4/events"
 
 export default function LeadTracker() {
   useEffect(() => {
@@ -29,11 +30,11 @@ export default function LeadTracker() {
           return;
         }
         
-        // Gerar ID de evento único para deduplicação
-        const eventId = generateEventId();
+        // Gerar ID de evento único para deduplicação Meta
+        const metaEventId = generateEventId();
         
-        console.log('[ViewContent Tracker] Processando evento ViewContent na página de apresentação', {
-          eventId,
+        console.log('[ViewContent Tracker] Processando evento ViewContent Meta na página de apresentação', {
+          eventId: metaEventId,
           contentIdentifier
         });
         
@@ -59,7 +60,7 @@ export default function LeadTracker() {
           }
           
           // Preparar dados do usuário com nome, email e telefone (se disponíveis)
-          const userData = prepareUserData({
+          const metaUserData = prepareUserData({
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
@@ -67,7 +68,7 @@ export default function LeadTracker() {
             fbp: metaParams.fbp || formData.fbp
           });
           
-          const eventData = {
+          const metaEventData = {
             content_name: "Apresentação VFX",
             content_category: "Video Presentation",
             content_type: "video_presentation",
@@ -77,8 +78,8 @@ export default function LeadTracker() {
           
           // Log detalhado antes do envio
           console.log('[ViewContent Tracker] Dados completos do evento:', {
-            eventId,
-            ...eventData,
+            eventId: metaEventId,
+            ...metaEventData,
             hasUserData: true,
             userData: {
               hasFbc: !!metaParams.fbc,
@@ -89,17 +90,54 @@ export default function LeadTracker() {
           // Primeiro API, depois Pixel (ordem importante)
           window.sendMetaEvent(
             'ViewContent', 
-            eventData, 
+            metaEventData, 
             { 
-              user_data: userData,
-              eventID: eventId 
+              user_data: metaUserData,
+              eventID: metaEventId 
             }
           );
           
-          console.log('[ViewContent Tracker] Evento ViewContent enviado com sucesso com ID:', eventId);
+          console.log('[ViewContent Tracker] Evento ViewContent Meta enviado com sucesso com ID:', metaEventId);
           
-          // Marcar evento como enviado para evitar duplicação
-          markEventAsSent("ViewContent", contentIdentifier, { eventId });
+          // Marcar evento Meta como enviado
+          markEventAsSent("ViewContent", contentIdentifier, { eventId: metaEventId });
+
+          // --- Envio GA4 (novo) ---
+          // Mapear parâmetros Meta para GA4 (evento view_item)
+          const ga4EventParams = {
+              currency: metaEventData.currency,
+              value: 0, // ViewContent geralmente não tem valor, mas GA4 recomenda enviar 0
+              items: [{
+                  item_id: metaEventData.content_ids[0], // Mapear content_ids
+                  item_name: metaEventData.content_name, // Mapear content_name
+                  item_category: metaEventData.content_category, // Mapear content_category
+                  // Outros parâmetros de item se aplicável (ex: price, quantity)
+              }]
+              // Adicionar outros parâmetros GA4 relevantes se necessário
+          };
+
+          // Enviar evento GA4 via gtag (cliente)
+          // Usar o mesmo identificador do Meta para deduplicação GA4
+          sendGA4Event('view_item', ga4EventParams, contentIdentifier);
+
+          // Preparar dados para Measurement Protocol
+          const ga4MpEventData = {
+              // non_personalized_ads: false, // Opcional
+              // user_properties: { ... } // Opcional
+              events: [{
+                  name: 'view_item',
+                  params: {
+                      ...ga4EventParams,
+                      // Parâmetros adicionais específicos do servidor, se houver
+                      // Não enviar PII
+                  }
+              }]
+          };
+          // Não enviamos ViewContent/view_item via MP por padrão, pois geralmente é menos crítico
+          // e já capturado pelo gtag. Descomente a linha abaixo se quiser enviar mesmo assim.
+          // sendMeasurementProtocolEvent(ga4MpEventData);
+          // --- Fim Envio GA4 ---
+
         } else {
           console.error('[ViewContent Tracker] window.sendMetaEvent não disponível');
         }
@@ -131,119 +169,107 @@ export default function LeadTracker() {
           return;
         }
         
-        // Gerar ID de evento para deduplicação
-        const eventId = generateEventId();
+        // Gerar ID de evento para deduplicação Meta
+        const metaEventId = generateEventId();
         
-        console.log('[Lead Tracker] Processando evento Lead na página de apresentação', {
-          eventId,
+        console.log('[Lead Tracker] Processando evento Lead Meta na página de apresentação', {
+          eventId: metaEventId,
           qualified: leadData.qualified || false,
           score: leadData.lead_score || 0,
           details: leadData.qualification_details || {}
         });
         
-        // Enviar evento Lead (mesmo para leads não qualificados, mas com valor diferente)
+        // Enviar evento Lead (Meta)
         if (typeof window !== 'undefined' && window.sendMetaEvent) {
-          // Calcular valor com base no score (0 para leads não qualificados)
           const isQualified = leadData.qualified !== false;
           const score = isQualified ? (leadData.lead_score || 1) : 0;
           const value = leadData.value || scoreToMonetaryValue(score);
-          
-          // Preparar dados do usuário com nome, email e telefone hasheados
-          const userData = prepareUserData({
+          const metaUserData = prepareUserData({
             email: leadData.email,
             phone: leadData.phone,
             name: leadData.name,
             fbc: leadData.fbc,
             fbp: leadData.fbp
           });
-          
-          // Verificar se o userData foi preparado corretamente
-          console.log('[Lead Tracker] Dados de usuário preparados:', {
-            hasEmail: !!userData.em,
-            hasPhone: !!userData.ph,
-            hasName: !!(userData.fn || userData.ln),
-            hasFbp: !!userData.fbp,
-            hasFbc: !!userData.fbc
-          });
-          
-          // Dados para o evento Lead
-          const eventData = {
+
+          const metaEventData = {
             value: value,
             currency: 'BRL',
             content_name: 'Apresentação Agendada',
             content_category: 'Lead Qualification',
             qualification_status: isQualified ? 'qualified' : 'unqualified',
             lead_score: score,
-            // Dados adicionais para enriquecer os parâmetros
             form_type: leadData.form_type || 'formulario_apresentacao',
             source: leadData.source || 'website'
           };
-          
-          // Log detalhado antes do envio
-          console.log('[Lead Tracker] Dados completos do evento Lead:', {
-            eventId,
-            value,
-            qualification_status: isQualified ? 'qualified' : 'unqualified',
-            score,
-            // Adicionar logs detalhados dos dados do usuário
-            hasUserData: true,
-            userData: {
-              hasEmail: !!leadData.email,
-              hasName: !!leadData.name,
-              hasPhone: !!leadData.phone,
-              hasFbc: !!leadData.fbc,
-              hasFbp: !!leadData.fbp
-            },
-            // Logs detalhados do userData processado
-            processedUserData: {
-              hasEmailHash: !!userData.em,
-              hasPhoneHash: !!userData.ph,
-              hasNameHash: !!(userData.fn || userData.ln)
-            }
-          });
-          
-          // Enviar evento Lead
+
+          // --- Envio Meta (existente) ---
           window.sendMetaEvent(
-            'Lead', 
-            eventData, 
-            { 
-              user_data: userData,
-              eventID: eventId 
-            }
+            'Lead',
+            metaEventData,
+            { user_data: metaUserData, eventID: metaEventId }
           );
-          
-          console.log('[Lead Tracker] Evento Lead enviado:', {
-            eventId,
+          console.log('[Lead Tracker] Evento Lead Meta enviado:', {
+            eventId: metaEventId,
             leadScore: score,
             isQualified,
-            hasEmail: !!userData.em,
-            hasPhone: !!userData.ph,
-            phoneHash: userData.ph?.[0]?.substring(0, 8) + "..."
+            hasEmail: !!leadData.email,
+            hasPhone: !!leadData.phone,
+            phoneHash: leadData.phone?.[0]?.substring(0, 8) + "..."
           });
-          
-          // Marcar evento como enviado para evitar duplicação
-          markEventAsSent("Lead", leadIdentifier, { 
-            eventId,
-            score,
-            qualified: isQualified 
-          });
-          
+
+          // Marcar evento Meta como enviado
+          markEventAsSent("Lead", leadIdentifier, { eventId: metaEventId, score, qualified: isQualified });
+
+          // --- Envio GA4 (novo) ---
+          // Mapear parâmetros Meta para GA4 (evento generate_lead)
+          const ga4EventParams = {
+            value: value,
+            currency: 'BRL',
+            item_name: metaEventData.content_name,
+            item_category: metaEventData.content_category,
+            qualification_status: metaEventData.qualification_status,
+            lead_score: score,
+            form_type: metaEventData.form_type,
+            source: metaEventData.source
+          };
+
+          // Enviar evento GA4 via gtag (cliente)
+          sendGA4Event('generate_lead', ga4EventParams, leadIdentifier);
+
+          // Preparar dados para Measurement Protocol
+          const ga4MpEventData = {
+              // non_personalized_ads: false,
+              // user_properties: { ... },
+              events: [{
+                  name: 'generate_lead',
+                  params: {
+                      ...ga4EventParams,
+                      // Parâmetros adicionais do servidor, se houver
+                      // Não enviar PII
+                  }
+              }]
+          };
+
+          // Enviar evento GA4 via Measurement Protocol (servidor)
+          sendMeasurementProtocolEvent(ga4MpEventData);
+          // --- Fim Envio GA4 ---
+
           // Armazenar dados para o evento SubmitApplication
           if (isQualified && score > 0) {
             localStorage.setItem('pendingSubmitApplication', JSON.stringify({
-              ...eventData,
-              // Garantir que os dados do usuário sejam incluídos
+              ...metaEventData,
               email: leadData.email,
               name: leadData.name,
               phone: leadData.phone,
               fbc: leadData.fbc,
               fbp: leadData.fbp,
-              lead_id: eventId,
+              lead_id: metaEventId,
               processed_lead: true
             }));
             
             console.log('[Lead Tracker] Dados para SubmitApplication armazenados:', {
-              leadId: eventId,
+              leadId: metaEventId,
               score,
               value: value,
               hasEmail: !!leadData.email,

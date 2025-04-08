@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { generateEventId } from "@/lib/meta-conversion-api"
 import { isEventAlreadySent, markEventAsSent } from "@/lib/event-deduplication"
 import { prepareUserData } from "@/lib/meta-utils"
+import { sendGA4Event, sendMeasurementProtocolEvent } from "@/lib/ga4/events"
 
 export default function SubmitApplicationTracker() {
   useEffect(() => {
@@ -47,20 +48,20 @@ export default function SubmitApplicationTracker() {
           return;
         }
         
-        // Gerar ID de evento único para deduplicação
-        const eventId = generateEventId();
+        // Gerar ID de evento único para deduplicação Meta
+        const metaEventId = generateEventId();
         
-        console.log('[SubmitApplication] Processando evento para lead qualificado', {
-          eventId,
+        console.log('[SubmitApplication] Processando evento Meta para lead qualificado', {
+          eventId: metaEventId,
           leadId: applicationData.lead_id,
           score: leadScore,
           formType: applicationData.form_type || 'não especificado'
         });
         
-        // Enviar evento SubmitApplication
+        // Enviar evento SubmitApplication (Meta)
         if (typeof window !== 'undefined' && window.sendMetaEvent) {
           // Preparar dados do usuário com nome, email e telefone hasheados
-          const userData = prepareUserData({
+          const metaUserData = prepareUserData({
             email: applicationData.email,
             phone: applicationData.phone,
             name: applicationData.name,
@@ -70,11 +71,11 @@ export default function SubmitApplicationTracker() {
           
           // Verificar se o userData foi preparado corretamente
           console.log('[SubmitApplication] Dados de usuário preparados:', {
-            hasEmail: !!userData.em,
-            hasPhone: !!userData.ph,
-            hasName: !!(userData.fn || userData.ln),
-            hasFbp: !!userData.fbp,
-            hasFbc: !!userData.fbc
+            hasEmail: !!metaUserData.em,
+            hasPhone: !!metaUserData.ph,
+            hasName: !!(metaUserData.fn || metaUserData.ln),
+            hasFbp: !!metaUserData.fbp,
+            hasFbc: !!metaUserData.fbc
           });
           
           // Determinar o nome do conteúdo com base no tipo de formulário
@@ -84,7 +85,7 @@ export default function SubmitApplicationTracker() {
           }
           
           // Preparar dados do evento - manter consistência com o evento Lead
-          const eventData = {
+          const metaEventData = {
             value: applicationData.value,
             currency: applicationData.currency || 'BRL',
             content_name: contentName,
@@ -98,7 +99,7 @@ export default function SubmitApplicationTracker() {
           
           // Log detalhado
           console.log('[SubmitApplication] Dados completos do evento:', {
-            eventId,
+            eventId: metaEventId,
             leadId: applicationData.lead_id,
             value: applicationData.value,
             score: leadScore,
@@ -114,30 +115,61 @@ export default function SubmitApplicationTracker() {
             },
             // Logs detalhados do userData processado
             processedUserData: {
-              hasEmailHash: !!userData.em,
-              hasPhoneHash: !!userData.ph,
-              hasNameHash: !!(userData.fn || userData.ln)
+              hasEmailHash: !!metaUserData.em,
+              hasPhoneHash: !!metaUserData.ph,
+              hasNameHash: !!(metaUserData.fn || metaUserData.ln)
             }
           });
           
           // Primeiro API, depois Pixel (ordem importante)
           window.sendMetaEvent(
             'SubmitApplication', 
-            eventData, 
+            metaEventData, 
             { 
-              user_data: userData,
-              eventID: eventId 
+              user_data: metaUserData,
+              eventID: metaEventId 
             }
           );
           
-          console.log('[SubmitApplication] Evento enviado com sucesso com ID:', eventId);
+          console.log('[SubmitApplication] Evento Meta enviado com sucesso com ID:', metaEventId);
           
-          // Marcar evento como enviado
-          markEventAsSent("SubmitApplication", identifier, { 
-            eventId, 
-            leadId: applicationData.lead_id,
-            leadScore: leadScore
-          });
+          // Marcar evento Meta como enviado
+          markEventAsSent("SubmitApplication", identifier, { eventId: metaEventId, leadId: applicationData.lead_id, leadScore: leadScore });
+
+          // --- Envio GA4 (novo) ---
+          // Mapear parâmetros Meta para GA4 (evento sign_up)
+          const ga4EventParams = {
+              method: applicationData.form_type === 'formulario_apresentacao' ? 'Presentation Form' : 'Contact Form', // Exemplo de mapeamento
+              value: metaEventData.value, // Usar o mesmo valor
+              currency: metaEventData.currency, // Usar a mesma moeda
+              item_name: metaEventData.content_name, // Mapear content_name
+              item_category: metaEventData.content_category, // Mapear content_category
+              lead_score: leadScore, // Parâmetro customizado
+              original_lead_id: applicationData.lead_id // Referência ao lead original (opcional)
+          };
+
+          // Enviar evento GA4 via gtag (cliente)
+          // Usar o mesmo identificador do Meta para deduplicação GA4
+          sendGA4Event('sign_up', ga4EventParams, identifier);
+
+          // Preparar dados para Measurement Protocol
+          const ga4MpEventData = {
+              // non_personalized_ads: false, // Opcional
+              // user_properties: { ... } // Opcional
+              events: [{
+                  name: 'sign_up',
+                  params: {
+                      ...ga4EventParams,
+                      // Parâmetros adicionais específicos do servidor, se houver
+                      // Não enviar PII
+                  }
+              }]
+          };
+
+          // Enviar evento GA4 via Measurement Protocol (servidor)
+          sendMeasurementProtocolEvent(ga4MpEventData);
+          // --- Fim Envio GA4 ---
+
         } else {
           console.error('[SubmitApplication] window.sendMetaEvent não disponível');
         }
@@ -147,6 +179,8 @@ export default function SubmitApplicationTracker() {
         
       } catch (error) {
         console.error('[SubmitApplication] Erro ao processar evento:', error);
+        // Limpar em caso de erro também para evitar loops
+        localStorage.removeItem('pendingSubmitApplication');
       }
     };
     

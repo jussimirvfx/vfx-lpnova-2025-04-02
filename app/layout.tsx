@@ -6,10 +6,10 @@ import { META_PIXEL_CONFIG } from "@/lib/config/meta-pixel"
 import { MetaPixelProvider } from "@/components/providers/meta-pixel-provider"
 import { MetaPixel } from "@/components/analytics/meta-pixel"
 import { SpeedInsights } from "@vercel/speed-insights/next"
-import { GA4Provider } from "@/lib/ga4-tracking/context/ga4-provider"
-import { GA4Tracker } from "@/components/analytics/ga4-tracker"
-import { GA4_CONFIG } from "@/lib/ga4-tracking/config/ga4-config"
-import GA4ViewContentTracker from "@/components/analytics/ga4-view-content-tracker"
+import Script from 'next/script'
+import ScrollTracker from "@/components/analytics/scroll-tracker"
+import VideoTracker from "@/components/analytics/video-tracker"
+import GA4RouteTracker from "@/components/analytics/ga4-route-tracker"
 
 // Definir fonte Inter como secundária
 const inter = Inter({ 
@@ -26,6 +26,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ["800", "700", "600", "500", "400"],
   preload: true,
 })
+
+const GA4_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
 
 export const metadata: Metadata = {
   title: "Agência VFX - Marketing Digital e Produção de Vídeos",
@@ -60,8 +62,6 @@ export default function RootLayout({
         {/* Preconnect para domínios importantes */}
         <link rel="preconnect" href="https://connect.facebook.net" />
         <link rel="preconnect" href="https://www.facebook.com" />
-        <link rel="preconnect" href="https://www.googletagmanager.com" />
-        <link rel="preconnect" href="https://www.google-analytics.com" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
@@ -82,17 +82,68 @@ export default function RootLayout({
         
         {/* Ícones para dispositivos Apple */}
         <link rel="apple-touch-icon" href="/icons/icon-512x512.png" />
+
+        {/* Google Analytics 4 - Global Site Tag (gtag.js) */}
+        {GA4_MEASUREMENT_ID && (
+          <>
+            <Script
+              strategy="afterInteractive"
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
+            />
+            <Script
+              id="ga4-init"
+              strategy="afterInteractive"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+
+                  gtag('config', '${GA4_MEASUREMENT_ID}', {
+                    page_path: window.location.pathname,
+                    send_page_view: true, // Permitir o page_view inicial, para página de entrada
+                    cookie_flags: 'SameSite=None;Secure',
+                    cookie_domain: window.location.hostname,
+                    cookie_expires: 63072000 // 2 anos em segundos
+                  });
+                  
+                  // Configurar o Next.js para rastrear mudanças de rota e enviar page_view
+                  if (typeof window !== 'undefined') {
+                    window.previousPath = window.location.pathname;
+                    
+                    // Esta função será chamada pelo Next Router no client-side
+                    window.trackRouteChange = function(url) {
+                      const newPath = new URL(url, window.location.origin).pathname;
+                      
+                      // Evitar disparos duplicados na mesma página
+                      if (window.previousPath === newPath) return;
+                      
+                      // Atualizar o path no config e enviar o page_view
+                      gtag('config', '${GA4_MEASUREMENT_ID}', {
+                        page_path: newPath,
+                        page_title: document.title
+                      });
+                      
+                      // Atualizar o path anterior
+                      window.previousPath = newPath;
+                    };
+                  }
+                `,
+              }}
+            />
+          </>
+        )}
+        {/* Fim do Google Analytics 4 */}
       </head>
       <body className={`${plusJakartaSans.variable} ${inter.variable} font-plus-jakarta`}>
         <MetaPixelProvider>
           <MetaPixel pixelId={META_PIXEL_CONFIG.PIXEL_ID} />
-          <GA4Provider>
-            <GA4Tracker measurementId={GA4_CONFIG.MEASUREMENT_ID} />
-            <GA4ViewContentTracker />
-            {children}
-            <Toaster />
-            <SpeedInsights />
-          </GA4Provider>
+          <GA4RouteTracker />
+          <ScrollTracker />
+          <VideoTracker />
+          {children}
+          <Toaster />
+          <SpeedInsights />
         </MetaPixelProvider>
       </body>
     </html>

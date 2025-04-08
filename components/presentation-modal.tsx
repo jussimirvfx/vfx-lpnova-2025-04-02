@@ -12,6 +12,7 @@ import { calculateLeadScore, scoreToMonetaryValue } from "@/lib/lead-scoring"
 import { Check, PlayCircle } from "lucide-react"
 import { getMetaParams, prepareUserData } from "@/lib/meta-utils"
 import { generateEventId } from "@/lib/meta-conversion-api"
+import { sendGA4Event, sendMeasurementProtocolEvent } from "@/lib/ga4/events"
 
 // Schema de validação do formulário
 const formSchema = z.object({
@@ -79,17 +80,17 @@ export function PresentationModal() {
 
       // Preparar os parâmetros meta
       const metaParams = getMetaParams();
-      const eventId = generateEventId();
+      const metaEventId = generateEventId();
 
-      // Preparar dados do usuário com telefone hasheado
-      const userData = prepareUserData({
+      // Preparar dados do usuário com telefone hasheado para Meta
+      const metaUserData = prepareUserData({
         name: data.name,
         email: data.email,
         phone: formattedPhone,
         fbc: metaParams.fbc,
         fbp: metaParams.fbp
       });
-      
+
       if (typeof window !== "undefined" && window.sendMetaEvent) {
         // Disparar evento de Contact (sempre dispara, independente do score)
         window.sendMetaEvent(
@@ -99,14 +100,43 @@ export function PresentationModal() {
             content_category: "WhatsApp Submission",
           },
           {
-            user_data: userData,
-            eventID: eventId,
+            user_data: metaUserData,
+            eventID: metaEventId,
           },
         );
+        console.log("[PresentationModal] Evento 'Contact' Meta enviado com ID:", metaEventId);
       } else {
         console.warn('[PresentationModal] window.sendMetaEvent not defined, event not sent.');
       }
-      
+
+      // --- Envio GA4 (novo) ---
+      const ga4EventParams = {
+          item_name: "Presentation Modal Form",
+          item_category: "Form Submission",
+          form_status: "submitted"
+      };
+
+      // Enviar evento GA4 via gtag (cliente)
+      const uniqueIdentifier = data.email || formattedPhone;
+      sendGA4Event('contact', ga4EventParams, `presentation_${uniqueIdentifier}`);
+
+      // Preparar dados para Measurement Protocol
+      const ga4MpEventData = {
+          user_properties: {
+          },
+          events: [{
+              name: 'contact',
+              params: {
+                  ...ga4EventParams,
+              }
+          }]
+      };
+
+      // Enviar evento GA4 via Measurement Protocol (servidor)
+      sendMeasurementProtocolEvent(ga4MpEventData);
+
+      // --- Fim Envio GA4 ---
+
       // Preparar dados do lead
       const leadData = {
         name: data.name,
@@ -133,7 +163,6 @@ export function PresentationModal() {
         fbc: metaParams.fbc || "",
         fbp: metaParams.fbp || "",
         created_at: new Date().toISOString(),
-        // Campos obrigatórios
         form_type: "formulario_apresentacao",
         source: "Website",
         page_url: window.location.href
@@ -183,7 +212,7 @@ export function PresentationModal() {
            // Armazenar os dados para serem usados na página de apresentação
            console.log("[PresentationModal] API respondeu com sucesso, armazenando dados para a página de apresentação...");
            
-           // Preparar dados para o evento Lead (será processado na página /obrigado)
+           // Preparar dados para o evento Lead (será processado na página /apresentacao)
            const leadEventData = {
              phone: formattedPhone,
              email: data.email,
