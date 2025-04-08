@@ -1,214 +1,217 @@
-# Documentação de Rastreamento Google Analytics 4 (GA4) e Google Ads
+# Documentação de Rastreamento GA4 e Google Ads
 
-Este documento descreve a implementação do rastreamento do Google Analytics 4 (GA4) e Google Ads na landing page, incluindo o uso do Measurement Protocol para envio de eventos server-side.
+Este documento descreve a implementação de rastreamento do Google Analytics 4 (GA4) e sua integração com o Google Ads para conversões.
+
+## Índice
+
+1. [Visão Geral](#visão-geral)
+2. [Configuração](#configuração)
+3. [Eventos Implementados](#eventos-implementados)
+4. [Rastreamento de Conversões](#rastreamento-de-conversões)
+5. [Integração com Google Ads](#integração-com-google-ads)
+6. [Orientações para Desenvolvedores](#orientações-para-desenvolvedores)
+7. [Troubleshooting](#troubleshooting)
 
 ## Visão Geral
 
-O sistema de rastreamento do GA4 foi implementado em paralelo com o Meta Pixel existente, permitindo que os mesmos eventos sejam enviados para ambas as plataformas. A abordagem utilizada foi a de:
+A implementação do GA4 nesta landing page foi projetada para:
 
-1. **Implementar o GA4**: Adicionar o código de rastreamento do Google Analytics 4.
-2. **Criar um Gateway**: Interceptar eventos do Meta Pixel e enviá-los também para o GA4.
-3. **Usar o Measurement Protocol**: Permitir o envio server-side de eventos para o GA4, similar ao CAPI do Meta.
+- Rastrear eventos padrão (visualizações de página, scrolls)
+- Rastrear eventos de conversão (leads)
+- Enviar dados via browser (gtag.js) e servidor (Measurement Protocol)
+- Integrar com Google Ads para conversões
 
-Esta implementação permite que todos os eventos já configurados para o Meta Pixel sejam automaticamente enviados também para o GA4, sem a necessidade de duplicar código ou modificar os componentes existentes.
-
-## Estrutura do Sistema
-
-O sistema está organizado de forma similar ao Meta Pixel, com uma estrutura modular em:
-
-- **`lib/ga4-tracking/`**: Diretório principal com todos os módulos
-  - **`core/`**: Funções essenciais e utilitários
-  - **`api/`**: Funções para comunicação com a API do GA4
-  - **`hooks/`**: Hooks React para facilitar o uso 
-  - **`config/`**: Configurações centralizadas
-  - **`meta-gateway.js`**: Gateway para interceptar eventos do Meta Pixel
-
-- **`components/layout/`**:
-  - **`GA4Initializer.jsx`**: Componente para inicializar o GA4
-  - **`MetaGA4Gateway.jsx`**: Componente para conectar Meta Pixel e GA4
-
-- **`app/api/ga4-events/`**:
-  - **`route.js`**: Endpoint da API do Next.js para o Measurement Protocol
+Essa implementação complementa o rastreamento do Meta Pixel e CAPI já existente, reutilizando a mesma estrutura de eventos.
 
 ## Configuração
 
 ### Variáveis de Ambiente
 
-O sistema utiliza as seguintes variáveis de ambiente:
+Abra o arquivo `.env.local` e configure as seguintes variáveis:
 
 ```
-# Google Analytics 4 & Measurement Protocol
-NEXT_PUBLIC_GA4_MEASUREMENT_ID=G-XXXXXXXXXX   # Seu ID de medição do GA4
-GA4_API_SECRET=XXXXXXXXXX                     # API Secret para o Measurement Protocol
+# GA4 e Google Ads
+NEXT_PUBLIC_GA4_MEASUREMENT_ID=G-XXXXXXXXXX  # ID da propriedade GA4
+GA4_API_SECRET=XXXXXXXXXX                    # API Secret do Measurement Protocol
 ```
 
-**Importante**:
-- O `MEASUREMENT_ID` começa com "G-" e é visível para todos (navegador).
-- O `API_SECRET` precisa ser mantido seguro (apenas no servidor).
+### No Google Analytics 4
 
-### Como obter as credenciais do GA4
+1. Crie uma propriedade GA4 no [Google Analytics](https://analytics.google.com/)
+2. Obtenha o Measurement ID (formato G-XXXXXXXX)
+3. Vá em Admin > Data Streams > Web > Configurações avançadas
+4. Gere uma chave de API Secret para o Measurement Protocol
+5. Configure a mesma como `GA4_API_SECRET` na aplicação
 
-1. **Measurement ID**:
-   - Acesse o [Google Analytics](https://analytics.google.com/)
-   - Vá para Admin > Propriedade > Streams de dados
-   - Selecione seu stream da web
-   - O ID de medição (G-XXXXXXXX) estará na seção "Detalhes do stream"
+### Conexão com Google Ads
 
-2. **API Secret**:
-   - No mesmo local acima, clique em "Measurement Protocol API secrets"
-   - Crie um novo secret e copie-o
-   - Este secret é usado apenas para envios server-side
+1. No Google Analytics, vá em Admin > Configurações da Propriedade > Links com Produtos
+2. Clique em "Link com Google Ads"
+3. Selecione a conta do Google Ads que deseja vincular
+4. Siga as instruções para completar a vinculação
 
-### Integrando com o Google Ads
+## Eventos Implementados
 
-Para utilizar as conversões do GA4 no Google Ads:
+A implementação rastreia os seguintes eventos:
 
-1. **Vincular contas**:
-   - Acesse o Google Analytics > Admin
-   - Em "Configuração da propriedade", selecione "Links do Google Ads"
-   - Vincule sua conta do Google Ads
+| Evento GA4 | Descrição | Equivalente Meta Pixel |
+|------------|-----------|------------------------|
+| `page_view` | Visualização de página | `PageView` |
+| `view_item` | Visualização de conteúdo | `ViewContent` |
+| `scroll` | Profundidade de scroll (25%, 50%, 75%, 90%) | `ScrollDepth` |
+| `contact` | Contato com a empresa | `Contact` |
+| `generate_lead` | Captura de lead | `Lead` |
 
-2. **Configurar conversões no GA4**:
-   - No GA4, vá para "Configurar > Eventos"
-   - Marque os eventos relevantes como conversões
-   - Estes eventos estarão disponíveis no Google Ads como conversões
+## Rastreamento de Conversões
 
-3. **Usar no Google Ads**:
-   - No Google Ads, acesse "Ferramentas e Configurações > Medição > Conversões"
-   - Você verá suas conversões importadas do GA4
-   - Associe-as às suas campanhas conforme necessário
+### Eventos de Lead
 
-## Como Funciona
-
-### 1. Inicialização do GA4
-
-O componente `GA4Initializer` carrega o script do GA4 e o configura para rastrear pageviews e eventos. Este componente foi adicionado ao layout principal (`app/layout.tsx`).
-
-### 2. Gateway Meta -> GA4
-
-O componente `MetaGA4Gateway` serve como uma ponte entre o Meta Pixel e o GA4. Ele:
-
-1. Inicializa-se quando tanto o Meta Pixel quanto o GA4 estão prontos
-2. Intercepta todos os eventos enviados pelo Meta Pixel
-3. Converte os nomes dos eventos e parâmetros para o formato do GA4
-4. Envia os eventos para o GA4 em paralelo com o Meta Pixel
-
-Desta forma, todos os eventos já configurados para o Meta serão automaticamente enviados também para o GA4.
-
-### 3. Measurement Protocol
-
-Similar à CAPI do Meta, o Measurement Protocol permite enviar eventos para o GA4 server-side. Isto é útil para:
-
-- Evitar bloqueadores de anúncios
-- Enviar eventos após o usuário sair da página
-- Validar e enriquecer dados no servidor
-
-A implementação inclui:
-
-1. Um cliente no navegador que envia eventos para uma API interna
-2. Uma rota de API (`/api/ga4-events`) que recebe os eventos
-3. Código no servidor que valida, enriquece e envia para a API do GA4
-
-## Mapeamento de Eventos
-
-Os eventos do Meta Pixel são automaticamente convertidos para o formato de eventos do GA4. O mapeamento atual inclui:
-
-| Evento Meta Pixel | Evento GA4 |
-|-------------------|------------|
-| PageView          | page_view  |
-| ViewContent       | view_item  |
-| Lead              | generate_lead |
-| Contact           | contact    |
-| SubmitApplication | begin_checkout |
-| CompleteRegistration | sign_up |
-
-Para eventos personalizados, o sistema converte automaticamente de camelCase (Meta) para snake_case (GA4).
-
-## Testando os Eventos
-
-Para verificar se os eventos estão sendo enviados corretamente:
-
-1. **Navegador**:
-   - Use o Chrome DevTools > Network
-   - Filtre as requisições para "collect" ou "google-analytics"
-   - Os eventos aparecerão como chamadas para estas URLs
-
-2. **GA4 DebugView**:
-   - No GA4, vá para "Configure > DebugView"
-   - Adicione seu dispositivo à visualização de depuração
-   - Você verá os eventos em tempo real
-
-## Troubleshooting
-
-### Eventos não estão aparecendo no GA4
-
-1. **Verificar inicialização**:
-   - Abra o Console do navegador
-   - Procure mensagens de log com o prefixo `[GA4]`
-   - Verifique se há erros de inicialização
-
-2. **Verificar requests de rede**:
-   - Use o DevTools > Network
-   - Filtre por "collect" ou "google-analytics"
-   - Verifique se as chamadas estão ocorrendo
-
-3. **Verificar variáveis de ambiente**:
-   - Certifique-se de que o `NEXT_PUBLIC_GA4_MEASUREMENT_ID` está configurado
-   - Para o Measurement Protocol, confirme o `GA4_API_SECRET`
-
-### Eventos aparecem no GA4 mas não no Google Ads
-
-1. **Verificar vinculação**:
-   - Confirme que as contas do GA4 e Google Ads estão vinculadas
-   - Verifique se a propriedade do GA4 está corretamente associada
-
-2. **Verificar configuração de conversões**:
-   - No GA4, confirme se os eventos estão marcados como conversões
-   - No Google Ads, verifique se as conversões do GA4 foram importadas
-
-## Extensão e Personalização
-
-### Enviando Eventos Diretamente para o GA4
-
-Se você precisar enviar eventos diretamente para o GA4 (sem passar pelo Meta Pixel):
+Para rastrear um lead, use o hook `useEventTracking`:
 
 ```jsx
-import { useGA4 } from '@/lib/ga4-tracking/hooks/useGA4';
+import { useEventTracking } from "@/lib/hooks/use-event-tracking";
 
-function MeuComponente() {
-  const { trackEvent } = useGA4();
+function LeadForm() {
+  const { trackLead } = useEventTracking();
   
-  const handleClick = () => {
-    trackEvent('nome_do_evento', {
-      // Parâmetros do evento
-      parametro1: 'valor1',
-      parametro2: 'valor2'
+  const handleSubmit = async (formData) => {
+    // Processar o formulário...
+    
+    // Rastrear a conversão
+    trackLead({
+      content_category: "formulário",
+      content_name: "formulário de contato principal",
+      value: 0, // valor estimado da conversão, se aplicável
+      currency: "BRL",
+      form_id: "contato-principal",
+      lead_id: leadId, // ID único do lead gerado
+      lead_type: "contato"
     });
   };
   
-  return <button onClick={handleClick}>Clique Aqui</button>;
+  return (
+    // Seu formulário aqui
+  );
 }
 ```
 
-### Adicionando Eventos Personalizados
+Este código enviará o evento tanto para o GA4 quanto para o Meta Pixel automaticamente.
 
-Para adicionar novos eventos personalizados, você pode:
+## Integração com Google Ads
 
-1. Usar o `trackEvent` do hook `useGA4` diretamente
-2. Adicionar mapeamentos na função `mapMetaEventToGA4` em `lib/ga4-tracking/hooks/useGA4.js`
+### Configuração das Conversões no Google Ads
 
-## Recomendações para Google Ads
+1. No Google Ads, vá em "Ferramentas e Configurações" > "Medição" > "Conversões"
+2. Clique em "Nova ação de conversão" > "Importar" > "Google Analytics 4"
+3. Selecione a propriedade GA4 vinculada
+4. Escolha o evento `generate_lead` como conversão
+5. Configure os detalhes da conversão (valor, janela de atribuição, etc.)
+6. Salve a conversão
 
-1. **Use as conversões importadas do GA4** em vez de configurar um pixel separado do Google Ads
-2. **Configure valores monetários nos eventos** para otimizar campanhas baseadas em valor
-3. **Aproveite os segmentos de público do GA4** para targeting no Google Ads
-4. **Utilize a atribuição entre dispositivos do GA4** para melhor compreensão da jornada do usuário
+### Rastreamento via Google Tag
 
----
+Por padrão, o GA4 envia os eventos para o Google Ads automaticamente após a integração.
 
-## Referências
+Para envio manual de conversões (opcional), você pode usar o método `trackConversion`:
 
-- [Documentação do Google Analytics 4](https://developers.google.com/analytics/devguides/collection/ga4)
-- [Documentação do Measurement Protocol do GA4](https://developers.google.com/analytics/devguides/collection/protocol/ga4)
-- [Vinculando Google Analytics e Google Ads](https://support.google.com/analytics/answer/10269537)
-- [Importando conversões do GA4 para o Google Ads](https://support.google.com/google-ads/answer/9744275) 
+```jsx
+import { useGA4 } from "@/lib/hooks/use-ga4";
+
+function SomeComponent() {
+  const { trackConversion } = useGA4();
+  
+  const handleImportantAction = () => {
+    // Código da ação...
+    
+    // Rastrear conversão diretamente para o Google Ads
+    trackConversion(
+      'AW-CONVERSION_ID',  // ID de conversão do Google Ads
+      'CONVERSION_LABEL',  // Rótulo de conversão
+      { 
+        value: 100,        // Valor da conversão
+        currency: 'BRL',
+        transaction_id: 'ID123' // Opcional para deduplicação
+      }
+    );
+  };
+  
+  return (
+    // Seu componente aqui
+  );
+}
+```
+
+## Orientações para Desenvolvedores
+
+### Estrutura de Arquivos
+
+```
+lib/
+├── config/
+│   └── ga4.ts                 # Configurações do GA4
+├── hooks/
+│   ├── use-ga4.ts             # Hook principal do GA4
+│   └── use-event-tracking.ts  # Hook unificado (GA4 + Meta)
+├── types/
+│   └── ga4.d.ts               # Tipagens do GA4
+├── utils/
+│   ├── ga4-logger.ts          # Utilitário de logging
+│   └── event-utils.ts         # Utilitários para eventos
+app/
+├── api/
+│   └── ga4-measurement/       # Endpoint do Measurement Protocol
+components/
+├── analytics/
+│   └── ga4-tag.tsx            # Componente para carregar o script
+└── providers/
+    └── ga4-provider.tsx       # Provider do GA4
+```
+
+### Fluxo de Inicialização e Rastreamento
+
+1. O `app/layout.tsx` carrega o `GA4Provider` e o `GA4Tag`
+2. O `GA4Tag` inicia o script do GA4 enquanto o `GA4Provider` inicializa a configuração
+3. O `useGA4` fornece métodos para rastrear eventos específicos do GA4
+4. O `useEventTracking` simplifica o envio simultâneo para GA4 e Meta Pixel
+
+### Measurement Protocol
+
+O endpoint `/api/ga4-measurement` permite enviar eventos do servidor com informações adicionais:
+
+- IP do cliente (para melhor precisão geográfica)
+- User-Agent (para melhor identificação do dispositivo)
+- Client ID consistente (para associar sessões)
+
+## Troubleshooting
+
+### Verificação de Implementação
+
+Para verificar se a implementação está funcionando:
+
+1. Instale a extensão [Tag Assistant](https://chrome.google.com/webstore/detail/tag-assistant-legacy/kejbdjndbnbjgmefkgdddjlbokphdefk) no Chrome
+2. Visite o site e verifique se o GA4 está disparando eventos
+3. No GA4, use o "DebugView" para ver eventos em tempo real
+
+### Problemas Comuns
+
+- **Eventos não aparecem no GA4**: Verifique se o `NEXT_PUBLIC_GA4_MEASUREMENT_ID` está configurado corretamente
+- **Eventos do servidor não são enviados**: Verifique se o `GA4_API_SECRET` está configurado corretamente
+- **Conversões não aparecem no Google Ads**: Verifique se:
+  - A propriedade GA4 está corretamente vinculada ao Google Ads
+  - A importação de conversões está configurada no Google Ads
+  - O evento `generate_lead` está sendo disparado corretamente
+  - Há um atraso normal de 24-48h para os dados aparecerem no Google Ads
+
+### Logs de Diagnóstico
+
+Em ambiente de desenvolvimento, você pode acessar logs detalhados:
+
+```javascript
+// No console do navegador
+window._ga4Logs.getLogs();                // Todos os logs
+window._ga4Logs.getLogsByCategory('init'); // Logs de inicialização
+```
+
+## Conclusão
+
+Esta implementação do GA4 e Google Ads foi projetada para complementar o rastreamento existente do Meta Pixel, permitindo medir conversões de forma consistente em ambas as plataformas. O uso do Measurement Protocol garante maior precisão no rastreamento de eventos críticos como leads. 

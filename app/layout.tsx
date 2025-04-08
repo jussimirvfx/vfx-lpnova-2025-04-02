@@ -3,12 +3,12 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@/components/ui/toaster"
 import { META_PIXEL_CONFIG } from "@/lib/config/meta-pixel"
+import { GA4_CONFIG } from "@/lib/config/ga4"
 import { MetaPixelProvider } from "@/components/providers/meta-pixel-provider"
+import { GA4Provider } from "@/components/providers/ga4-provider"
 import { MetaPixel } from "@/components/analytics/meta-pixel"
+import { GA4Tag } from "@/components/analytics/ga4-tag"
 import { SpeedInsights } from "@vercel/speed-insights/next"
-import { MetaPixelInitializer } from "@/components/layout/MetaPixelInitializer"
-import { GA4Initializer } from "@/components/layout/GA4Initializer"
-import { MetaGA4Gateway } from "@/components/layout/MetaGA4Gateway"
 
 // Definir fonte Inter como secundária
 const inter = Inter({ 
@@ -84,15 +84,22 @@ export default function RootLayout({
       </head>
       <body className={`${plusJakartaSans.variable} ${inter.variable} font-plus-jakarta`}>
         <MetaPixelProvider>
-          <MetaPixel pixelId={META_PIXEL_CONFIG.PIXEL_ID} />
-          {children}
-          <Toaster />
-          <SpeedInsights />
-          
-          {/* Inicializadores de rastreamento */}
-          <MetaPixelInitializer />
-          <GA4Initializer />
-          <MetaGA4Gateway />
+          <GA4Provider>
+            {/* Meta Pixel - Carrega script e dispara PageView inicial */}
+            <MetaPixel pixelId={META_PIXEL_CONFIG.PIXEL_ID} />
+            
+            {/* GA4 - Carrega script e dispara PageView inicial */}
+            {GA4_CONFIG.MEASUREMENT_ID && (
+              <GA4Tag measurementId={GA4_CONFIG.MEASUREMENT_ID} />
+            )}
+            
+            {/* Conteúdo principal */}
+            {children}
+            
+            {/* UI components */}
+            <Toaster />
+            <SpeedInsights />
+          </GA4Provider>
         </MetaPixelProvider>
       </body>
     </html>
