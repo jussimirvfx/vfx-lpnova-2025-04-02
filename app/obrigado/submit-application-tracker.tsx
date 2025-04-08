@@ -137,7 +137,7 @@ export default function SubmitApplicationTracker() {
           markEventAsSent("SubmitApplication", identifier, { eventId: metaEventId, leadId: applicationData.lead_id, leadScore: leadScore });
 
           // --- Envio GA4 (novo) ---
-          // Mapear parâmetros Meta para GA4 (evento sign_up)
+          // Mapear parâmetros Meta para GA4 (evento QualifiedLead)
           const ga4EventParams = {
               method: applicationData.form_type === 'formulario_apresentacao' ? 'Presentation Form' : 'Contact Form', // Exemplo de mapeamento
               value: metaEventData.value, // Usar o mesmo valor
@@ -150,14 +150,15 @@ export default function SubmitApplicationTracker() {
 
           // Enviar evento GA4 via gtag (cliente)
           // Usar o mesmo identificador do Meta para deduplicação GA4
-          sendGA4Event('sign_up', ga4EventParams, identifier);
+          sendGA4Event('QualifiedLead', ga4EventParams, identifier);
 
           // Preparar dados para Measurement Protocol
           const ga4MpEventData = {
               // non_personalized_ads: false, // Opcional
               // user_properties: { ... } // Opcional
               events: [{
-                  name: 'sign_up',
+                  // Alterado de 'sign_up' para 'QualifiedLead'
+                  name: 'QualifiedLead',
                   params: {
                       ...ga4EventParams,
                       // Parâmetros adicionais específicos do servidor, se houver

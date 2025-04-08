@@ -18,7 +18,7 @@ const EVENT_EXPIRATION = {
   generate_lead: 24 * 60 * 60 * 1000,     // 24 horas (como Lead)
   contact: 1 * 60 * 60 * 1000,            // 1 hora (como Contact)
   view_item: 30 * 60 * 1000,              // 30 minutos (como ViewContent)
-  sign_up: 24 * 60 * 60 * 1000,           // 24 horas (como SubmitApplication)
+  QualifiedLead: 24 * 60 * 60 * 1000,       // 24 horas (como SubmitApplication)
   scroll: 15 * 60 * 1000,                 // 15 minutos (como Scroll)
   page_view: 5 * 60 * 1000,               // 5 minutos (como PageView)
   video_progress: 10 * 60 * 1000,         // 10 minutos (como VideoPlay)
@@ -52,7 +52,7 @@ type NamespaceType = 'META' | 'GA4' | 'DEFAULT';
 function getNamespaceByEventName(eventName: string): NamespaceType {
   // Eventos GA4 padrão e custom
   const ga4Events = [
-    'page_view', 'scroll', 'view_item', 'generate_lead', 'sign_up', 
+    'page_view', 'scroll', 'view_item', 'generate_lead', 'QualifiedLead',
     'contact', 'video_start', 'video_progress', 'video_complete'
   ];
   
