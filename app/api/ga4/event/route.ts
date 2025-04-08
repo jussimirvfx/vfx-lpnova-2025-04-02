@@ -23,12 +23,23 @@ export async function POST(req: NextRequest) {
     // Constrói a URL com os parâmetros necessários
     const url = `${GA4_ENDPOINT}?api_secret=${API_SECRET}&measurement_id=${MEASUREMENT_ID}`;
 
-    // Prepara o payload final para o Google
+    // Preparar payload para o Measurement Protocol
     const payload = {
-      client_id,
-      non_personalized_ads: non_personalized_ads === undefined ? false : non_personalized_ads, // Default false
-      user_properties,
-      events,
+      client_id: client_id,
+      non_personalized_ads: body.non_personalized_ads,
+      debug_mode: true, // Ativar modo de depuração para visualizar erros
+      user_properties: body.user_properties,
+      events: body.events.map((event: any) => ({
+        ...event,
+        params: {
+          ...event.params,
+          // Garantir que tenhamos os parâmetros necessários
+          session_id: event.params.session_id || undefined,
+          engagement_time_msec: event.params.engagement_time_msec || "1",
+          // Forçar o envio para o ID correto
+          send_to: process.env.GA4_MEASUREMENT_ID
+        }
+      }))
     };
 
     // Adiciona informações da requisição original se útil (ex: IP, User-Agent)

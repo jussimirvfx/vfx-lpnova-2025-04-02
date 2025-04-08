@@ -87,8 +87,15 @@ export const sendGA4Event = (eventName: string, params: EventParams = {}, unique
 
   console.log(`GA4 Event: Enviando evento "${eventName}" com parâmetros:`, params);
   try {
+    // Garantir que o evento tenha as configurações corretas para ser capturado
+    const enhancedParams = {
+      ...params,
+      transport_type: 'beacon', // Usar beacon para garantir que o evento seja enviado mesmo em navegação entre páginas
+      send_to: process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID // Especificar explicitamente para onde o evento deve ser enviado
+    };
+    
     // Agora o TypeScript reconhece gtag
-    (window as any).gtag('event', eventName, params);
+    (window as any).gtag('event', eventName, enhancedParams);
 
     // Marca o evento como enviado após o sucesso
     if (uniqueIdentifier) {

@@ -10,6 +10,7 @@ import Script from 'next/script'
 import ScrollTracker from "@/components/analytics/scroll-tracker"
 import VideoTracker from "@/components/analytics/video-tracker"
 import GA4RouteTracker from "@/components/analytics/ga4-route-tracker"
+import { cn } from "@/lib/utils"
 
 // Definir fonte Inter como secundária
 const inter = Inter({ 
@@ -102,10 +103,9 @@ export default function RootLayout({
 
                   gtag('config', '${GA4_MEASUREMENT_ID}', {
                     page_path: window.location.pathname,
-                    send_page_view: true, // Permitir o page_view inicial, para página de entrada
-                    cookie_flags: 'SameSite=None;Secure',
-                    cookie_domain: window.location.hostname,
-                    cookie_expires: 63072000 // 2 anos em segundos
+                    transport_type: 'beacon',
+                    send_page_view: true,
+                    gtag_enable_tcf_support: true
                   });
                   
                   // Log para depuração

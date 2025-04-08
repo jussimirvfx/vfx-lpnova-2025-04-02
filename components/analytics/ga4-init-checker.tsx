@@ -64,6 +64,8 @@ export default function GA4InitChecker() {
             event_label: 'Test GA4 Availability',
             value: 1,
             debug_mode: true,
+            transport_type: 'beacon',
+            non_interaction: true,
             send_to: GA4_MEASUREMENT_ID
           });
           console.log('[GA4 Checker] Evento de teste enviado com sucesso.');
@@ -121,8 +123,9 @@ export default function GA4InitChecker() {
           gtag('js', new Date());
           gtag('config', '${GA4_MEASUREMENT_ID}', {
             page_path: window.location.pathname,
+            transport_type: 'beacon',
             send_page_view: true,
-            debug_mode: true
+            gtag_enable_tcf_support: true
           });
           console.log('[GA4 Checker] GA4 inicializado via recovery script');
         `;
