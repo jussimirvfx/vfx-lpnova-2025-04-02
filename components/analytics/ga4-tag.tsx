@@ -4,7 +4,7 @@ import { useGA4 } from "@/lib/hooks/use-ga4"
 import { useEffect } from "react"
 import Script from "next/script"
 import { GA4_CONFIG } from "@/lib/config/ga4"
-import { LogCategory } from "@/lib/types/ga4"
+import { LogCategory } from "@/lib/types"
 import ga4Logger from "@/lib/utils/ga4-logger"
 
 interface GA4TagProps {

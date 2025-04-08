@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { GA4_CONFIG } from '@/lib/config/ga4';
-import { LogCategory, GA4PageViewOptions, GA4EventOptions, UseGA4Return } from '@/lib/types/ga4';
+import { LogCategory, GA4PageViewOptions, GA4EventOptions, UseGA4Return } from '@/lib/types';
 import ga4Logger from '@/lib/utils/ga4-logger';
 import { generateEventId } from '@/lib/utils/event-utils';
 

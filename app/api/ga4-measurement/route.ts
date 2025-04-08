@@ -1,7 +1,7 @@
 import { cookies, headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { getServerGA4Config } from '@/lib/config/ga4'
-import { GA4TrackingData } from '@/lib/types/ga4'
+import { GA4TrackingData } from '@/lib/types'
 
 // URL base da API do Measurement Protocol do GA4
 const GA4_MEASUREMENT_PROTOCOL_URL = 'https://www.google-analytics.com/mp/collect'

@@ -1,7 +1,7 @@
 "use client";
 
 import { GA4_CONFIG } from "../config/ga4";
-import { LogCategory } from "../types/ga4";
+import { LogCategory } from "../types";
 
 // Níveis de log disponíveis
 export enum LogLevel {

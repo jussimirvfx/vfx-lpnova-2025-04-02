@@ -4,7 +4,7 @@ import { useGA4 } from "@/lib/hooks/use-ga4"
 import { GA4_CONFIG } from "@/lib/config/ga4"
 import { useEffect, useState } from "react"
 import ga4Logger from "@/lib/utils/ga4-logger"
-import { LogCategory } from "@/lib/types/ga4"
+import { LogCategory } from "@/lib/types"
 
 /**
  * Estender a interface Window para incluir a função sendGAEvent
