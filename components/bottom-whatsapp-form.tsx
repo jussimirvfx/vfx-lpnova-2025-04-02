@@ -129,13 +129,13 @@ export function BottomWhatsAppForm() {
 
           // Enviar evento GA4 via gtag (cliente)
           // Usar o número de telefone como identificador único para deduplicação neste form
-          sendGA4Event('contact', ga4EventParams, `whatsapp_${normalizedNumber}`);
+          sendGA4Event('Whatsapp', ga4EventParams, `whatsapp_${normalizedNumber}`);
 
           // Preparar dados para Measurement Protocol
           // Reutiliza dados já disponíveis, mas não envia PII diretamente
           const ga4MpEventData = {
             events: [{
-              name: 'contact',
+              name: 'Whatsapp',
               params: {
                   ...ga4EventParams,
               }

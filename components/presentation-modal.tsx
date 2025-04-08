@@ -118,14 +118,14 @@ export function PresentationModal() {
 
       // Enviar evento GA4 via gtag (cliente)
       const uniqueIdentifier = data.email || formattedPhone;
-      sendGA4Event('contact', ga4EventParams, `presentation_${uniqueIdentifier}`);
+      sendGA4Event('Whatsapp', ga4EventParams, `presentation_${uniqueIdentifier}`);
 
       // Preparar dados para Measurement Protocol
       const ga4MpEventData = {
           user_properties: {
           },
           events: [{
-              name: 'contact',
+              name: 'Whatsapp',
               params: {
                   ...ga4EventParams,
               }
