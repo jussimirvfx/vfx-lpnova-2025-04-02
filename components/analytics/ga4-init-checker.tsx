@@ -146,10 +146,10 @@ export default function GA4InitChecker() {
       // Incrementar contador de tentativas
       setCheckCount(prev => prev + 1);
       
-      // Verificar novamente após algum tempo
+      // Verificar novamente após um tempo menor
       const timeout = setTimeout(() => {
         checkGA4();
-      }, 1000);
+      }, 200);
       
       return () => clearTimeout(timeout);
     }

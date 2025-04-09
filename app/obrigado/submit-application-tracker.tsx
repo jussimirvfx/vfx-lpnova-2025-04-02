@@ -9,7 +9,7 @@ import { sendGA4Event, sendMeasurementProtocolEvent } from "@/lib/ga4/events"
 export default function SubmitApplicationTracker() {
   useEffect(() => {
     // Processamos o evento SubmitApplication apenas para leads qualificados
-    const processSubmitApplication = async () => {
+    const processSubmitApplication = async (retryCount = 0) => {
       try {
         // Verificar se existe dados pendentes
         const pendingData = localStorage.getItem('pendingSubmitApplication');
@@ -58,10 +58,14 @@ export default function SubmitApplicationTracker() {
           formType: applicationData.form_type || 'não especificado'
         });
         
-        // Verificar explicitamente se o GA4 está pronto
+        // Verificar explicitamente se o GA4 está pronto - com tentativas mais rápidas
         if (typeof window === 'undefined' || typeof (window as any).gtag !== 'function') {
-          console.error('[SubmitApp Tracker] gtag não está disponível. Tentando novamente em 2 segundos...');
-          setTimeout(processSubmitApplication, 2000);
+          if (retryCount < 10) {
+            console.log(`[SubmitApp Tracker] gtag não está disponível. Tentativa ${retryCount + 1}/10 em 200ms...`);
+            setTimeout(() => processSubmitApplication(retryCount + 1), 200);
+          } else {
+            console.error('[SubmitApp Tracker] Desistindo após 10 tentativas de encontrar gtag.');
+          }
           return;
         }
         
@@ -144,10 +148,6 @@ export default function SubmitApplicationTracker() {
           markEventAsSent("SubmitApplication", identifier, { eventId: metaEventId, leadId: applicationData.lead_id, leadScore: leadScore });
 
           // --- Envio GA4 (novo) ---
-          // Marcamos explicitamente um pequeno atraso para garantir que o GA4 está 100% inicializado
-          console.log('[SubmitApp Tracker] Aguardando 500ms antes de enviar os eventos GA4...');
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
           // Mapear parâmetros Meta para GA4
           const ga4EventParams = {
               method: applicationData.form_type === 'formulario_apresentacao' ? 'Presentation Form' : 'Contact Form', // Exemplo de mapeamento
@@ -196,10 +196,9 @@ export default function SubmitApplicationTracker() {
       }
     };
     
-    // Executar após um pequeno atraso mais longo para garantir que a página carregou completamente
-    // Aumentamos o delay para dar tempo ao GA4/GTM de inicializar completamente
-    // Lead Tracker inicia em 5000ms, vamos iniciar este em 6500ms para escalonar os eventos
-    const timerId = setTimeout(processSubmitApplication, 6500);
+    // Executar após um pequeno atraso, logo depois do Lead Tracker (que inicia em 500ms)
+    // Mantendo a sequência mas reduzindo significativamente o tempo de espera
+    const timerId = setTimeout(processSubmitApplication, 800);
     
     return () => clearTimeout(timerId);
   }, []);

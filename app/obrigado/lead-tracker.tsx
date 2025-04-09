@@ -10,7 +10,7 @@ import { sendGA4Event, sendMeasurementProtocolEvent } from "@/lib/ga4/events"
 export default function LeadTracker() {
   useEffect(() => {
     // Processamos o evento Lead apenas quando a página de obrigado é carregada
-    const processPendingLeadEvent = async () => {
+    const processPendingLeadEvent = async (retryCount = 0) => {
       try {
         // Verificar se existe um evento Lead pendente
         const pendingLeadEventData = localStorage.getItem('pendingLeadEvent');
@@ -42,10 +42,14 @@ export default function LeadTracker() {
           details: leadData.qualification_details || {}
         });
         
-        // Verificar explicitamente se o GA4 está pronto
+        // Verificar explicitamente se o GA4 está pronto - com tentativas mais rápidas e limite maior
         if (typeof window === 'undefined' || typeof (window as any).gtag !== 'function') {
-          console.error('[Lead Tracker] gtag não está disponível. Tentando novamente em 2 segundos...');
-          setTimeout(processPendingLeadEvent, 2000);
+          if (retryCount < 10) {
+            console.log(`[Lead Tracker] gtag não está disponível. Tentativa ${retryCount + 1}/10 em 200ms...`);
+            setTimeout(() => processPendingLeadEvent(retryCount + 1), 200);
+          } else {
+            console.error('[Lead Tracker] Desistindo após 10 tentativas de encontrar gtag.');
+          }
           return;
         }
         
@@ -133,10 +137,6 @@ export default function LeadTracker() {
           markEventAsSent("Lead", leadIdentifier, { eventId: metaEventId, score, qualified: isQualified });
           
           // --- Envio GA4 (novo) ---
-          // Marcamos explicitamente um pequeno atraso para garantir que o GA4 está 100% inicializado
-          console.log('[Lead Tracker] Aguardando 500ms antes de enviar os eventos GA4...');
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
           // Mapear parâmetros Meta para GA4
           const ga4EventParams = {
             value: value, // Usar o mesmo valor calculado
@@ -207,9 +207,9 @@ export default function LeadTracker() {
       }
     };
     
-    // Executar após um pequeno atraso maior para garantir que a página carregou completamente
-    // Aumentamos o delay para dar tempo ao GA4/GTM de inicializar completamente
-    const timerId = setTimeout(processPendingLeadEvent, 5000);
+    // Executar após um pequeno atraso para garantir que os dados de LocalStorage estão acessíveis
+    // Mas muito mais curto para não perder eventos se o usuário sair da página rapidamente
+    const timerId = setTimeout(processPendingLeadEvent, 500);
     
     return () => clearTimeout(timerId);
   }, []);
