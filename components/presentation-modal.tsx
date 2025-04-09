@@ -343,9 +343,9 @@ export function PresentationModal() {
                 onChange={(e) => setCountryCode(e.target.value)}
                 className="w-32 p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
               >
-                <option value="+55">Brasil (+55)</option>
-                <option value="+351">Portugal (+351)</option>
-                <option value="+1">EUA (+1)</option>
+                <option value="+55">🇧🇷 Brasil</option>
+                <option value="+351">🇵🇹 Portugal</option>
+                <option value="+1">🇺🇸 EUA</option>
               </select>
               <input
                 type="tel"
