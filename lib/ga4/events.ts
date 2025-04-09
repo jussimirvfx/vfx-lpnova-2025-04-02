@@ -51,6 +51,8 @@ const GA4_MP_ENDPOINT = '/api/ga4/event';
  * @param {string} [uniqueIdentifier] Identificador único para deduplicação (ex: ID do formulário, URL da página).
  */
 export const sendGA4Event = (eventName: string, params: EventParams = {}, uniqueIdentifier?: string): void => {
+  console.log(`[sendGA4Event] Iniciando para evento: ${eventName}`, { params, uniqueIdentifier });
+
   // Não envia se não estiver no navegador
   if (typeof window === 'undefined') {
     console.warn('GA4 Event: Não estamos no navegador.');
@@ -59,17 +61,17 @@ export const sendGA4Event = (eventName: string, params: EventParams = {}, unique
 
   // Verifica se o evento já foi enviado para este identificador
   if (uniqueIdentifier && hasEventBeenSent(eventName, uniqueIdentifier)) {
-    console.log(`GA4 Event: Evento "${eventName}" com ID "${uniqueIdentifier}" já enviado. Prevenindo duplicata.`);
+    console.log(`[sendGA4Event] Evento "${eventName}" com ID "${uniqueIdentifier}" já enviado (deduplicação). Ignorando.`);
     return;
   }
   if (!uniqueIdentifier && hasEventBeenSent(eventName)) {
-    console.log(`GA4 Event: Evento "${eventName}" já enviado. Prevenindo duplicata.`);
+    console.log(`[sendGA4Event] Evento "${eventName}" já enviado (deduplicação sem ID). Ignorando.`);
     return;
   }
 
   // Verificar se gtag está disponível
   if (typeof (window as any).gtag !== 'function') {
-    console.log(`GA4 Event: gtag não está disponível. Enfileirando evento "${eventName}" para envio posterior.`);
+    console.log(`[sendGA4Event] gtag não disponível para "${eventName}". Enfileirando...`);
     
     // Adicionar evento à fila de pendentes
     queueEvent(eventName, params, uniqueIdentifier);
@@ -85,7 +87,7 @@ export const sendGA4Event = (eventName: string, params: EventParams = {}, unique
     return;
   }
 
-  console.log(`GA4 Event: Enviando evento "${eventName}" com parâmetros:`, params);
+  console.log(`[sendGA4Event] gtag disponível. Preparando envio para "${eventName}".`);
   try {
     // Garantir que o evento tenha as configurações corretas para ser capturado
     const enhancedParams = {
@@ -94,8 +96,10 @@ export const sendGA4Event = (eventName: string, params: EventParams = {}, unique
       send_to: process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID // Especificar explicitamente para onde o evento deve ser enviado
     };
     
+    console.log(`[sendGA4Event] Chamando gtag('event', '${eventName}', ...)`, enhancedParams);
     // Agora o TypeScript reconhece gtag
     (window as any).gtag('event', eventName, enhancedParams);
+    console.log(`[sendGA4Event] Chamada gtag realizada para "${eventName}". Marcando como enviado.`);
 
     // Marca o evento como enviado após o sucesso
     if (uniqueIdentifier) {
@@ -146,12 +150,14 @@ const getClientId = (): Promise<string | null> => {
  * @returns {Promise<void>}
  */
 export const sendMeasurementProtocolEvent = async (data: Omit<MPEventData, 'client_id'>): Promise<void> => {
+  console.log(`[sendMPEvent] Iniciando envio MP. Dados recebidos:`, data);
   const clientId = await getClientId();
 
   if (!clientId) {
-      console.warn('GA4 MP Event: Não foi possível obter o client_id. Evento não enviado.');
+      console.warn('[sendMPEvent] Não foi possível obter client_id. Abortando envio MP.');
       return;
   }
+  console.log(`[sendMPEvent] Client ID obtido: ${clientId}`);
 
   const eventData: MPEventData = {
       ...data,
@@ -160,7 +166,7 @@ export const sendMeasurementProtocolEvent = async (data: Omit<MPEventData, 'clie
 
   // Não envia se não tiver eventos
   if (!eventData.events || eventData.events.length === 0) {
-    console.warn('GA4 MP Event: Dados inválidos para envio (eventos ausentes).');
+    console.warn('[sendMPEvent] Nenhum evento para enviar. Abortando.');
     return;
   }
 
@@ -176,7 +182,7 @@ export const sendMeasurementProtocolEvent = async (data: Omit<MPEventData, 'clie
     }
   }));
 
-  console.log('GA4 MP Event: Enviando dados para endpoint:', GA4_MP_ENDPOINT, eventData);
+  console.log('[sendMPEvent] Dados finais preparados para envio API:', eventData);
 
   try {
     const response = await fetch(GA4_MP_ENDPOINT, {
@@ -186,17 +192,18 @@ export const sendMeasurementProtocolEvent = async (data: Omit<MPEventData, 'clie
       },
       body: JSON.stringify(eventData),
     });
+    console.log(`[sendMPEvent] Requisição para ${GA4_MP_ENDPOINT} enviada.`);
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`GA4 MP Event: Erro ${response.status} ao enviar evento:`, errorBody);
+      console.error(`[sendMPEvent] Erro ${response.status} na resposta da API:`, errorBody);
       throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
     }
 
-    console.log('GA4 MP Event: Evento enviado com sucesso via API interna.');
+    console.log('[sendMPEvent] Evento enviado com sucesso via API interna.');
 
   } catch (error) {
-    console.error('GA4 MP Event: Falha ao enviar evento via Measurement Protocol (API interna):', error);
+    console.error('[sendMPEvent] Falha na requisição fetch para a API interna:', error);
     // Implementar retry logic se necessário
   }
 }; 

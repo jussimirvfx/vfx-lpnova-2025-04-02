@@ -64,8 +64,10 @@ export default function ScrollTracker() {
               page_location: window.location.href,
               page_path: window.location.pathname,
             }
-
+            
+            console.log(`[ScrollTracker] Preparando envio GA4 (gtag) para ${point}%...`, ga4EventParams);
             sendGA4Event('scroll', ga4EventParams, scrollIdentifier)
+            console.log(`[ScrollTracker] Chamada sendGA4Event (gtag) para ${point}% realizada.`);
 
             // 3. Envio para GA4 Measurement Protocol
             const ga4MpEventData = {
@@ -77,8 +79,10 @@ export default function ScrollTracker() {
                 }
               }]
             }
-
+            
+            console.log(`[ScrollTracker] Preparando envio GA4 (MP) para ${point}%...`, ga4MpEventData);
             sendMeasurementProtocolEvent(ga4MpEventData)
+            console.log(`[ScrollTracker] Chamada sendMeasurementProtocolEvent (MP) para ${point}% realizada.`);
             
             // Marcar como enviado
             markEventAsSent("Scroll", scrollIdentifier)
