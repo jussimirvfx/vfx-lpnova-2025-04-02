@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { sendGA4Event, sendMeasurementProtocolEvent } from '@/lib/ga4/events'
-import { isEventAlreadySent, markEventAsSent } from "@/lib/event-deduplication"
+import { isEventAlreadySent, markEventAsSent, clearSentEvents } from "@/lib/event-deduplication"
 
 /**
  * Componente que rastreia o progresso de scroll da página e dispara
@@ -16,6 +16,25 @@ export default function ScrollTracker() {
     const trackedScrollPoints = new Set<number>()
     // ID da página atual para deduplicação
     const pageIdentifier = window.location.pathname
+    
+    // FIXME: Reset temporário do estado de deduplicação para fins de diagnóstico
+    // Isso deve ser removido após o diagóstico
+    console.log("[ScrollTracker] Limpando estado de deduplicação para scroll");
+    clearSentEvents('GA4', 'scroll');
+    
+    // Função para verificar e logar os eventos armazenados no localStorage
+    const logLocalStorageState = () => {
+      try {
+        console.log("[ScrollTracker] Conteúdo do localStorage:");
+        console.log("_ga4_events_sent:", localStorage.getItem('_ga4_events_sent'));
+        console.log("_meta_events_sent:", localStorage.getItem('_meta_events_sent'));
+      } catch (e) {
+        console.error("[ScrollTracker] Erro ao acessar localStorage:", e);
+      }
+    };
+    
+    // Log inicial do estado
+    logLocalStorageState();
 
     const handleScroll = () => {
       try {
@@ -31,14 +50,16 @@ export default function ScrollTracker() {
             const scrollIdentifier = `scroll_${pageIdentifier}_${point}`
 
             // Verificar se já foi enviado nesta sessão (prevenir duplicatas em reloads)
-            if (isEventAlreadySent("Scroll", scrollIdentifier)) {
-              console.log(`[ScrollTracker] Evento de ${point}% já enviado para esta página. Ignorando.`)
-              trackedScrollPoints.add(point)
-              continue
+            if (isEventAlreadySent("scroll", scrollIdentifier)) {
+              console.log(`[ScrollTracker] Evento de ${point}% já enviado para esta página. Ignorando.`);
+              trackedScrollPoints.add(point);
+              // Log do estado atual do localStorage após verificação
+              logLocalStorageState();
+              continue;
             }
 
-            console.log(`[ScrollTracker] Rastreando scroll de ${point}%`)
-            trackedScrollPoints.add(point)
+            console.log(`[ScrollTracker] Rastreando scroll de ${point}%`);
+            trackedScrollPoints.add(point);
 
             // 1. Envio para Meta (se disponível)
             if (typeof window.sendMetaEvent === 'function') {
@@ -85,7 +106,11 @@ export default function ScrollTracker() {
             console.log(`[ScrollTracker] Chamada sendMeasurementProtocolEvent (MP) para ${point}% realizada.`);
             
             // Marcar como enviado
-            markEventAsSent("Scroll", scrollIdentifier)
+            markEventAsSent("Scroll", scrollIdentifier, undefined, 'META');
+            markEventAsSent("scroll", scrollIdentifier, undefined, 'GA4');
+            
+            // Log do estado após marcar o evento como enviado
+            logLocalStorageState();
           }
         }
       } catch (error) {
