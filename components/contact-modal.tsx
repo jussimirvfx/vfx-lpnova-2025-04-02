@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { calculateLeadScore, scoreToMonetaryValue } from "@/lib/lead-scoring"
 import { getMetaParams, prepareUserData } from "@/lib/meta-utils"
 import { generateEventId } from "@/lib/meta-conversion-api"
+import { formatPhoneNumber } from "@/lib/utils"
 
 export function ContactModal() {
   const router = useRouter()
@@ -339,6 +340,12 @@ export function ContactModal() {
     }
   }, [])
 
+  // Criar um handler específico para o campo de telefone
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Aplicar a formatação enquanto o usuário digita
+    setPhoneNumber(formatPhoneNumber(e.target.value));
+  };
+
   return (
     <div
       id="contactModal"
@@ -406,7 +413,7 @@ export function ContactModal() {
                 type="tel"
                 placeholder="WhatsApp"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+                onChange={handlePhoneChange}
                 required
                 className="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
               />
