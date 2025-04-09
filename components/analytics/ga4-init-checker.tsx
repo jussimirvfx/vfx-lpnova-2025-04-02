@@ -63,21 +63,36 @@ export default function GA4InitChecker() {
       if (hasGtag) {
         console.log(`${debugPrefix}[GA4 Checker] GA4 está disponível e inicializado.`);
         
-        // Reinicializar o GA4 se necessário
-        try {
-          console.log(`${debugPrefix}[GA4 Checker] Enviando evento de teste para verificar funcionamento.`);
-          (window as any).gtag('event', 'ga4_checker_test', {
-            event_category: 'GA4 Checker',
-            event_label: 'Test GA4 Availability',
-            value: 1,
-            debug_mode: true,
-            transport_type: 'beacon',
-            non_interaction: true,
-            send_to: GA4_MEASUREMENT_ID
-          });
-          console.log(`${debugPrefix}[GA4 Checker] Evento de teste enviado com sucesso.`);
-        } catch (error) {
-          console.error(`${debugPrefix}[GA4 Checker] Erro ao enviar evento de teste:`, error);
+        // Verificar se estamos em ambiente de preview/teste
+        const isPreviewEnvironment = typeof window !== 'undefined' && 
+          (window.location.hostname.includes('vercel') || 
+           window.location.hostname.includes('preview') ||
+           window.location.hostname.includes('projects') ||
+           window.location.hostname.includes('localhost') ||
+           window.location.hostname.includes('test') ||
+           window.location.hostname.includes('staging') ||
+           window.location.search.includes('debug=1') ||
+           window.location.search.includes('gtm_debug'));
+        
+        // Enviar evento de teste apenas em ambiente de preview
+        if (isPreviewEnvironment) {
+          try {
+            console.log(`${debugPrefix}[GA4 Checker] Ambiente de preview/teste detectado. Enviando evento de teste.`);
+            (window as any).gtag('event', 'ga4_checker_test', {
+              event_category: 'GA4 Checker',
+              event_label: 'Test GA4 Availability',
+              value: 1,
+              debug_mode: true,
+              transport_type: 'beacon',
+              non_interaction: true,
+              send_to: GA4_MEASUREMENT_ID
+            });
+            console.log(`${debugPrefix}[GA4 Checker] Evento de teste enviado com sucesso.`);
+          } catch (error) {
+            console.error(`${debugPrefix}[GA4 Checker] Erro ao enviar evento de teste:`, error);
+          }
+        } else {
+          console.log(`${debugPrefix}[GA4 Checker] Ambiente de produção detectado. Evento de teste não será enviado.`);
         }
         
         return true;
@@ -128,13 +143,25 @@ export default function GA4InitChecker() {
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
+          
+          // Verificar se estamos em ambiente de preview/teste
+          const isPreviewEnv = window.location.hostname.includes('vercel') || 
+                              window.location.hostname.includes('preview') ||
+                              window.location.hostname.includes('projects') ||
+                              window.location.hostname.includes('localhost') ||
+                              window.location.hostname.includes('test') ||
+                              window.location.hostname.includes('staging') ||
+                              window.location.search.includes('debug=1') ||
+                              window.location.search.includes('gtm_debug');
+          
           gtag('config', '${GA4_MEASUREMENT_ID}', {
             page_path: window.location.pathname,
             transport_type: 'beacon',
             send_page_view: true,
-            gtag_enable_tcf_support: true
+            gtag_enable_tcf_support: true,
+            debug_mode: isPreviewEnv
           });
-          console.log('[GA4 Checker] GA4 inicializado via recovery script');
+          console.log('[GA4 Checker] GA4 inicializado via recovery script' + (isPreviewEnv ? ' (ambiente de preview)' : ' (ambiente de produção)'));
         `;
         
         document.head.appendChild(initScript);
