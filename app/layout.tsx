@@ -100,26 +100,16 @@ export default function RootLayout({
                   window.dataLayer = window.dataLayer || [];
                   function gtag(){dataLayer.push(arguments);}
                   gtag('js', new Date());
-                  
-                  // Verificar se estamos em ambiente de preview/teste
-                  const isPreviewEnv = window.location.hostname.includes('vercel') || 
-                                      window.location.hostname.includes('preview') ||
-                                      window.location.hostname.includes('projects') ||
-                                      window.location.hostname.includes('localhost') ||
-                                      window.location.hostname.includes('test') ||
-                                      window.location.hostname.includes('staging') ||
-                                      window.location.search.includes('debug=1') ||
-                                      window.location.search.includes('gtm_debug');
-                  
+
                   gtag('config', '${GA4_MEASUREMENT_ID}', {
                     page_path: window.location.pathname,
                     transport_type: 'beacon',
                     send_page_view: true,
-                    gtag_enable_tcf_support: true,
-                    debug_mode: isPreviewEnv
+                    gtag_enable_tcf_support: true
                   });
                   
-                  console.log('[GA4] Inicializado com ID: ${GA4_MEASUREMENT_ID}' + (isPreviewEnv ? ' (ambiente de preview)' : ' (ambiente de produção)'));
+                  // Log para depuração
+                  console.log('[GA4] Inicializado com ID:', '${GA4_MEASUREMENT_ID}');
                   
                   // Configurar o Next.js para rastrear mudanças de rota e enviar page_view
                   if (typeof window !== 'undefined') {
@@ -136,8 +126,7 @@ export default function RootLayout({
                       console.log('[GA4] Mudança de rota detectada:', newPath);
                       gtag('config', '${GA4_MEASUREMENT_ID}', {
                         page_path: newPath,
-                        page_title: document.title,
-                        debug_mode: isPreviewEnv
+                        page_title: document.title
                       });
                       
                       // Atualizar o path anterior
