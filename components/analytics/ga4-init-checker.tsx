@@ -12,8 +12,25 @@ export default function GA4InitChecker() {
   const GA4_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID
 
   useEffect(() => {
+    // Verificar se estamos em ambiente de preview/desenvolvimento
+    const isPreviewEnvironment = typeof window !== 'undefined' && (
+      window.location.hostname.includes('vercel.app') ||
+      window.location.hostname.includes('localhost') ||
+      window.location.hostname.includes('127.0.0.1') ||
+      window.location.hostname.includes('preview') ||
+      window.location.hostname.includes('-dev') ||
+      process.env.NODE_ENV === 'development'
+    );
+    
+    // Função de log que só mostra detalhes em preview/dev
+    const debugLog = (message: string) => {
+      if (isPreviewEnvironment) {
+        console.log(message);
+      }
+    };
+    
     // Log inicial
-    console.log(`[GA4 Checker] Iniciando verificação. GA4_MEASUREMENT_ID definido: ${!!GA4_MEASUREMENT_ID}`);
+    debugLog(`[GA4 Checker] Iniciando verificação. GA4_MEASUREMENT_ID definido: ${!!GA4_MEASUREMENT_ID}`);
     
     if (!GA4_MEASUREMENT_ID) {
       console.error('[GA4 Checker] ID de medição do GA4 não está definido nas variáveis de ambiente!');
@@ -29,55 +46,47 @@ export default function GA4InitChecker() {
 
     // Verificar se o GA4 está disponível
     const checkGA4 = () => {
-      console.log(`${debugPrefix}[GA4 Checker] Tentativa ${checkCount + 1}: Verificando disponibilidade do GA4...`);
+      debugLog(`${debugPrefix}[GA4 Checker] Tentativa ${checkCount + 1}: Verificando disponibilidade do GA4...`);
       
       // Verificar window
       if (typeof window === 'undefined') {
-        console.log(`${debugPrefix}[GA4 Checker] window não está definido (provavelmente em SSR)`);
+        debugLog(`${debugPrefix}[GA4 Checker] window não está definido (provavelmente em SSR)`);
         return false;
       }
       
       // Verificar gtag
       const hasGtag = typeof (window as any).gtag === 'function';
-      console.log(`${debugPrefix}[GA4 Checker] gtag disponível: ${hasGtag}`);
+      debugLog(`${debugPrefix}[GA4 Checker] gtag disponível: ${hasGtag}`);
       
       // Verificar dataLayer
       const hasDataLayer = Array.isArray((window as any).dataLayer);
-      console.log(`${debugPrefix}[GA4 Checker] dataLayer disponível: ${hasDataLayer}`);
+      debugLog(`${debugPrefix}[GA4 Checker] dataLayer disponível: ${hasDataLayer}`);
       
-      // Verificar scripts
-      const scripts = document.querySelectorAll('script');
-      const gtagScripts = Array.from(scripts).filter(script => 
-        script.src && script.src.includes('googletagmanager.com/gtag')
-      );
-      console.log(`${debugPrefix}[GA4 Checker] Scripts do gtag encontrados: ${gtagScripts.length}`);
-      
-      if (gtagScripts.length > 0) {
-        gtagScripts.forEach((script, index) => {
-          console.log(`${debugPrefix}[GA4 Checker] Script gtag ${index + 1}: ${script.src}, id: ${script.id || 'não definido'}`);
-        });
+      // Verificar scripts (apenas em preview/dev)
+      if (isPreviewEnvironment) {
+        const scripts = document.querySelectorAll('script');
+        const gtagScripts = Array.from(scripts).filter(script => 
+          script.src && script.src.includes('googletagmanager.com/gtag')
+        );
+        debugLog(`${debugPrefix}[GA4 Checker] Scripts do gtag encontrados: ${gtagScripts.length}`);
+        
+        if (gtagScripts.length > 0) {
+          gtagScripts.forEach((script, index) => {
+            debugLog(`${debugPrefix}[GA4 Checker] Script gtag ${index + 1}: ${script.src}, id: ${script.id || 'não definido'}`);
+          });
+        }
       }
       
       setIsGA4Available(hasGtag);
       
       if (hasGtag) {
-        console.log(`${debugPrefix}[GA4 Checker] GA4 está disponível e inicializado.`);
+        debugLog(`${debugPrefix}[GA4 Checker] GA4 está disponível e inicializado.`);
         
-        // Verificar se estamos em ambiente de preview/teste
-        const isPreviewEnvironment = typeof window !== 'undefined' && 
-          (window.location.hostname.includes('vercel') || 
-           window.location.hostname.includes('preview') ||
-           window.location.hostname.includes('projects') ||
-           window.location.hostname.includes('localhost') ||
-           window.location.hostname.includes('test') ||
-           window.location.hostname.includes('staging') ||
-           window.location.search.includes('debug=1') ||
-           window.location.search.includes('gtm_debug'));
-        
-        // Enviar evento de teste apenas em ambiente de preview
-        if (isPreviewEnvironment) {
-          try {
-            console.log(`${debugPrefix}[GA4 Checker] Ambiente de preview/teste detectado. Enviando evento de teste.`);
+        // Reinicializar o GA4 se necessário
+        try {
+          // Verificar se estamos em ambiente de preview/desenvolvimento (já verificado acima)
+          if (isPreviewEnvironment) {
+            debugLog(`${debugPrefix}[GA4 Checker] Ambiente de preview detectado. Enviando evento de teste.`);
             (window as any).gtag('event', 'ga4_checker_test', {
               event_category: 'GA4 Checker',
               event_label: 'Test GA4 Availability',
@@ -87,12 +96,14 @@ export default function GA4InitChecker() {
               non_interaction: true,
               send_to: GA4_MEASUREMENT_ID
             });
-            console.log(`${debugPrefix}[GA4 Checker] Evento de teste enviado com sucesso.`);
-          } catch (error) {
-            console.error(`${debugPrefix}[GA4 Checker] Erro ao enviar evento de teste:`, error);
+            debugLog(`${debugPrefix}[GA4 Checker] Evento de teste enviado com sucesso em ambiente de preview.`);
+          } else {
+            // Em produção, não precisamos de logs
           }
-        } else {
-          console.log(`${debugPrefix}[GA4 Checker] Ambiente de produção detectado. Evento de teste não será enviado.`);
+        } catch (error) {
+          if (isPreviewEnvironment) {
+            console.error(`${debugPrefix}[GA4 Checker] Erro ao verificar ambiente ou enviar evento de teste:`, error);
+          }
         }
         
         return true;
@@ -106,7 +117,7 @@ export default function GA4InitChecker() {
     
     // Se não estiver disponível ou se estamos em uma página de conversão crítica, sempre tentar inicializar
     if ((!isAvailable || isConversionPage) && GA4_MEASUREMENT_ID && checkCount < 5) {
-      console.log(`${debugPrefix}[GA4 Checker] GA4 ${isConversionPage ? 'reforçando inicialização em página de conversão' : 'não está disponível'}. Tentativa ${checkCount + 1}.`);
+      debugLog(`${debugPrefix}[GA4 Checker] GA4 ${isConversionPage ? 'reforçando inicialização em página de conversão' : 'não está disponível'}. Tentativa ${checkCount + 1}.`);
       
       // Verificar se os scripts já existem
       const existingScript = document.getElementById('ga4-gtag-script') 
@@ -115,7 +126,7 @@ export default function GA4InitChecker() {
         || document.getElementById('ga4-init-recovery');
       
       if (!existingScript) {
-        console.log(`${debugPrefix}[GA4 Checker] Script do gtag não encontrado. Criando...`);
+        debugLog(`${debugPrefix}[GA4 Checker] Script do gtag não encontrado. Criando...`);
         
         // Criar script do gtag.js
         const script = document.createElement('script');
@@ -124,50 +135,54 @@ export default function GA4InitChecker() {
         script.id = 'ga4-gtag-script-recovery';
         
         // Adicionar eventos para depuração
-        script.onload = () => console.log(`${debugPrefix}[GA4 Checker] Script do gtag carregado com sucesso.`);
-        script.onerror = (e) => console.error(`${debugPrefix}[GA4 Checker] Erro ao carregar script do gtag:`, e);
+        script.onload = () => debugLog(`${debugPrefix}[GA4 Checker] Script do gtag carregado com sucesso.`);
+        script.onerror = (e) => {
+          if (isPreviewEnvironment) {
+            console.error(`${debugPrefix}[GA4 Checker] Erro ao carregar script do gtag:`, e);
+          }
+        };
         
         document.head.appendChild(script);
-        console.log(`${debugPrefix}[GA4 Checker] Script do gtag adicionado ao head.`);
+        debugLog(`${debugPrefix}[GA4 Checker] Script do gtag adicionado ao head.`);
       } else {
-        console.log(`${debugPrefix}[GA4 Checker] Script do gtag já existe com id: ${existingScript.id}`);
+        debugLog(`${debugPrefix}[GA4 Checker] Script do gtag já existe com id: ${existingScript.id}`);
       }
       
       if (!existingInit) {
-        console.log(`${debugPrefix}[GA4 Checker] Script de inicialização não encontrado. Criando...`);
+        debugLog(`${debugPrefix}[GA4 Checker] Script de inicialização não encontrado. Criando...`);
         
         // Criar script de inicialização
         const initScript = document.createElement('script');
         initScript.id = 'ga4-init-recovery';
+        
+        // Verificar se estamos em ambiente de preview/desenvolvimento
+        const isPreviewEnv = typeof window !== 'undefined' && (
+          window.location.hostname.includes('vercel.app') ||
+          window.location.hostname.includes('localhost') ||
+          window.location.hostname.includes('127.0.0.1') ||
+          window.location.hostname.includes('preview') ||
+          window.location.hostname.includes('-dev') ||
+          process.env.NODE_ENV === 'development'
+        );
+        
+        // Construir o script com logs condicionais ao ambiente
         initScript.innerHTML = `
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          
-          // Verificar se estamos em ambiente de preview/teste
-          const isPreviewEnv = window.location.hostname.includes('vercel') || 
-                              window.location.hostname.includes('preview') ||
-                              window.location.hostname.includes('projects') ||
-                              window.location.hostname.includes('localhost') ||
-                              window.location.hostname.includes('test') ||
-                              window.location.hostname.includes('staging') ||
-                              window.location.search.includes('debug=1') ||
-                              window.location.search.includes('gtm_debug');
-          
           gtag('config', '${GA4_MEASUREMENT_ID}', {
             page_path: window.location.pathname,
             transport_type: 'beacon',
             send_page_view: true,
-            gtag_enable_tcf_support: true,
-            debug_mode: isPreviewEnv
+            gtag_enable_tcf_support: true
           });
-          console.log('[GA4 Checker] GA4 inicializado via recovery script' + (isPreviewEnv ? ' (ambiente de preview)' : ' (ambiente de produção)'));
+          ${isPreviewEnv ? "console.log('[GA4 Checker] GA4 inicializado via recovery script');" : ""}
         `;
         
         document.head.appendChild(initScript);
-        console.log(`${debugPrefix}[GA4 Checker] Script de inicialização adicionado ao head.`);
+        debugLog(`${debugPrefix}[GA4 Checker] Script de inicialização adicionado ao head.`);
       } else {
-        console.log(`${debugPrefix}[GA4 Checker] Script de inicialização já existe com id: ${existingInit.id}`);
+        debugLog(`${debugPrefix}[GA4 Checker] Script de inicialização já existe com id: ${existingInit.id}`);
       }
       
       // Incrementar contador de tentativas
@@ -183,14 +198,11 @@ export default function GA4InitChecker() {
     
     // Se já tentou várias vezes sem sucesso
     if (checkCount >= 5 && !isAvailable) {
+      // Este é um erro importante, então mantemos em produção
       console.error(`${debugPrefix}[GA4 Checker] Não foi possível inicializar o GA4 após várias tentativas.`);
       
-      // Última tentativa - verificação de erros adicionais
-      console.log(`${debugPrefix}[GA4 Checker] Verificando possíveis problemas...`);
-      
-      if (typeof window === 'undefined') {
-        console.error(`${debugPrefix}[GA4 Checker] window não está definido!`);
-      } else {
+      // Detalhes adicionais apenas em preview/dev
+      if (isPreviewEnvironment) {
         // Verificar se há bloqueadores de anúncios
         try {
           const test = document.createElement('div');
