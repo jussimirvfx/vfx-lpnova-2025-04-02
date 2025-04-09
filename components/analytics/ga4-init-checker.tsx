@@ -20,45 +20,52 @@ export default function GA4InitChecker() {
       return;
     }
 
+    // Verificar se estamos em uma página de conversão crítica
+    const isConversionPage = typeof window !== 'undefined' && 
+      (window.location.pathname.includes('/obrigado') || 
+       window.location.pathname.includes('/apresentacao'));
+    
+    const debugPrefix = isConversionPage ? '[CONVERSÃO] ' : '';
+
     // Verificar se o GA4 está disponível
     const checkGA4 = () => {
-      console.log(`[GA4 Checker] Tentativa ${checkCount + 1}: Verificando disponibilidade do GA4...`);
+      console.log(`${debugPrefix}[GA4 Checker] Tentativa ${checkCount + 1}: Verificando disponibilidade do GA4...`);
       
       // Verificar window
       if (typeof window === 'undefined') {
-        console.log('[GA4 Checker] window não está definido (provavelmente em SSR)');
+        console.log(`${debugPrefix}[GA4 Checker] window não está definido (provavelmente em SSR)`);
         return false;
       }
       
       // Verificar gtag
       const hasGtag = typeof (window as any).gtag === 'function';
-      console.log(`[GA4 Checker] gtag disponível: ${hasGtag}`);
+      console.log(`${debugPrefix}[GA4 Checker] gtag disponível: ${hasGtag}`);
       
       // Verificar dataLayer
       const hasDataLayer = Array.isArray((window as any).dataLayer);
-      console.log(`[GA4 Checker] dataLayer disponível: ${hasDataLayer}`);
+      console.log(`${debugPrefix}[GA4 Checker] dataLayer disponível: ${hasDataLayer}`);
       
       // Verificar scripts
       const scripts = document.querySelectorAll('script');
       const gtagScripts = Array.from(scripts).filter(script => 
         script.src && script.src.includes('googletagmanager.com/gtag')
       );
-      console.log(`[GA4 Checker] Scripts do gtag encontrados: ${gtagScripts.length}`);
+      console.log(`${debugPrefix}[GA4 Checker] Scripts do gtag encontrados: ${gtagScripts.length}`);
       
       if (gtagScripts.length > 0) {
         gtagScripts.forEach((script, index) => {
-          console.log(`[GA4 Checker] Script gtag ${index + 1}: ${script.src}, id: ${script.id || 'não definido'}`);
+          console.log(`${debugPrefix}[GA4 Checker] Script gtag ${index + 1}: ${script.src}, id: ${script.id || 'não definido'}`);
         });
       }
       
       setIsGA4Available(hasGtag);
       
       if (hasGtag) {
-        console.log('[GA4 Checker] GA4 está disponível e inicializado.');
+        console.log(`${debugPrefix}[GA4 Checker] GA4 está disponível e inicializado.`);
         
         // Reinicializar o GA4 se necessário
         try {
-          console.log('[GA4 Checker] Enviando evento de teste para verificar funcionamento.');
+          console.log(`${debugPrefix}[GA4 Checker] Enviando evento de teste para verificar funcionamento.`);
           (window as any).gtag('event', 'ga4_checker_test', {
             event_category: 'GA4 Checker',
             event_label: 'Test GA4 Availability',
@@ -68,9 +75,9 @@ export default function GA4InitChecker() {
             non_interaction: true,
             send_to: GA4_MEASUREMENT_ID
           });
-          console.log('[GA4 Checker] Evento de teste enviado com sucesso.');
+          console.log(`${debugPrefix}[GA4 Checker] Evento de teste enviado com sucesso.`);
         } catch (error) {
-          console.error('[GA4 Checker] Erro ao enviar evento de teste:', error);
+          console.error(`${debugPrefix}[GA4 Checker] Erro ao enviar evento de teste:`, error);
         }
         
         return true;
@@ -82,9 +89,9 @@ export default function GA4InitChecker() {
     // Verificar imediatamente
     const isAvailable = checkGA4();
     
-    // Se não estiver disponível, tentar inicializar
-    if (!isAvailable && GA4_MEASUREMENT_ID && checkCount < 5) {
-      console.log(`[GA4 Checker] GA4 não está disponível. Tentativa ${checkCount + 1} de inicializar.`);
+    // Se não estiver disponível ou se estamos em uma página de conversão crítica, sempre tentar inicializar
+    if ((!isAvailable || isConversionPage) && GA4_MEASUREMENT_ID && checkCount < 5) {
+      console.log(`${debugPrefix}[GA4 Checker] GA4 ${isConversionPage ? 'reforçando inicialização em página de conversão' : 'não está disponível'}. Tentativa ${checkCount + 1}.`);
       
       // Verificar se os scripts já existem
       const existingScript = document.getElementById('ga4-gtag-script') 
@@ -93,7 +100,7 @@ export default function GA4InitChecker() {
         || document.getElementById('ga4-init-recovery');
       
       if (!existingScript) {
-        console.log('[GA4 Checker] Script do gtag não encontrado. Criando...');
+        console.log(`${debugPrefix}[GA4 Checker] Script do gtag não encontrado. Criando...`);
         
         // Criar script do gtag.js
         const script = document.createElement('script');
@@ -102,17 +109,17 @@ export default function GA4InitChecker() {
         script.id = 'ga4-gtag-script-recovery';
         
         // Adicionar eventos para depuração
-        script.onload = () => console.log('[GA4 Checker] Script do gtag carregado com sucesso.');
-        script.onerror = (e) => console.error('[GA4 Checker] Erro ao carregar script do gtag:', e);
+        script.onload = () => console.log(`${debugPrefix}[GA4 Checker] Script do gtag carregado com sucesso.`);
+        script.onerror = (e) => console.error(`${debugPrefix}[GA4 Checker] Erro ao carregar script do gtag:`, e);
         
         document.head.appendChild(script);
-        console.log('[GA4 Checker] Script do gtag adicionado ao head.');
+        console.log(`${debugPrefix}[GA4 Checker] Script do gtag adicionado ao head.`);
       } else {
-        console.log(`[GA4 Checker] Script do gtag já existe com id: ${existingScript.id}`);
+        console.log(`${debugPrefix}[GA4 Checker] Script do gtag já existe com id: ${existingScript.id}`);
       }
       
       if (!existingInit) {
-        console.log('[GA4 Checker] Script de inicialização não encontrado. Criando...');
+        console.log(`${debugPrefix}[GA4 Checker] Script de inicialização não encontrado. Criando...`);
         
         // Criar script de inicialização
         const initScript = document.createElement('script');
@@ -131,9 +138,9 @@ export default function GA4InitChecker() {
         `;
         
         document.head.appendChild(initScript);
-        console.log('[GA4 Checker] Script de inicialização adicionado ao head.');
+        console.log(`${debugPrefix}[GA4 Checker] Script de inicialização adicionado ao head.`);
       } else {
-        console.log(`[GA4 Checker] Script de inicialização já existe com id: ${existingInit.id}`);
+        console.log(`${debugPrefix}[GA4 Checker] Script de inicialização já existe com id: ${existingInit.id}`);
       }
       
       // Incrementar contador de tentativas
@@ -149,13 +156,13 @@ export default function GA4InitChecker() {
     
     // Se já tentou várias vezes sem sucesso
     if (checkCount >= 5 && !isAvailable) {
-      console.error('[GA4 Checker] Não foi possível inicializar o GA4 após várias tentativas.');
+      console.error(`${debugPrefix}[GA4 Checker] Não foi possível inicializar o GA4 após várias tentativas.`);
       
       // Última tentativa - verificação de erros adicionais
-      console.log('[GA4 Checker] Verificando possíveis problemas...');
+      console.log(`${debugPrefix}[GA4 Checker] Verificando possíveis problemas...`);
       
       if (typeof window === 'undefined') {
-        console.error('[GA4 Checker] window não está definido!');
+        console.error(`${debugPrefix}[GA4 Checker] window não está definido!`);
       } else {
         // Verificar se há bloqueadores de anúncios
         try {
@@ -166,17 +173,17 @@ export default function GA4InitChecker() {
           
           setTimeout(() => {
             if (test.offsetHeight === 0) {
-              console.error('[GA4 Checker] Possível bloqueador de anúncios detectado!');
+              console.error(`${debugPrefix}[GA4 Checker] Possível bloqueador de anúncios detectado!`);
             }
             document.body.removeChild(test);
           }, 100);
         } catch (e) {
-          console.error('[GA4 Checker] Erro ao verificar bloqueador de anúncios:', e);
+          console.error(`${debugPrefix}[GA4 Checker] Erro ao verificar bloqueador de anúncios:`, e);
         }
         
         // Verificar erros de CSP (Content Security Policy)
         if (typeof (window as any).chrome !== 'undefined' && (window as any).chrome.runtime) {
-          console.log('[GA4 Checker] Verificando extensões de navegador que podem estar bloqueando o script...');
+          console.log(`${debugPrefix}[GA4 Checker] Verificando extensões de navegador que podem estar bloqueando o script...`);
         }
       }
     }

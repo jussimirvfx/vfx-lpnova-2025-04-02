@@ -9,7 +9,7 @@ import { sendGA4Event, sendMeasurementProtocolEvent } from "@/lib/ga4/events"
 export default function SubmitApplicationTracker() {
   useEffect(() => {
     // Processamos o evento SubmitApplication apenas para leads qualificados
-    const processSubmitApplication = () => {
+    const processSubmitApplication = async () => {
       try {
         // Verificar se existe dados pendentes
         const pendingData = localStorage.getItem('pendingSubmitApplication');
@@ -57,6 +57,13 @@ export default function SubmitApplicationTracker() {
           score: leadScore,
           formType: applicationData.form_type || 'não especificado'
         });
+        
+        // Verificar explicitamente se o GA4 está pronto
+        if (typeof window === 'undefined' || typeof (window as any).gtag !== 'function') {
+          console.error('[SubmitApp Tracker] gtag não está disponível. Tentando novamente em 2 segundos...');
+          setTimeout(processSubmitApplication, 2000);
+          return;
+        }
         
         // Enviar evento SubmitApplication (Meta)
         if (typeof window !== 'undefined' && window.sendMetaEvent) {
@@ -137,7 +144,11 @@ export default function SubmitApplicationTracker() {
           markEventAsSent("SubmitApplication", identifier, { eventId: metaEventId, leadId: applicationData.lead_id, leadScore: leadScore });
 
           // --- Envio GA4 (novo) ---
-          // Mapear parâmetros Meta para GA4 (evento QualifiedLead)
+          // Marcamos explicitamente um pequeno atraso para garantir que o GA4 está 100% inicializado
+          console.log('[SubmitApp Tracker] Aguardando 500ms antes de enviar os eventos GA4...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Mapear parâmetros Meta para GA4
           const ga4EventParams = {
               method: applicationData.form_type === 'formulario_apresentacao' ? 'Presentation Form' : 'Contact Form', // Exemplo de mapeamento
               value: metaEventData.value, // Usar o mesmo valor
@@ -179,14 +190,16 @@ export default function SubmitApplicationTracker() {
         localStorage.removeItem('pendingSubmitApplication');
         
       } catch (error) {
-        console.error('[SubmitApplication] Erro ao processar evento:', error);
+        console.error('[SubmitApp Tracker] Erro ao processar evento SubmitApplication:', error);
         // Limpar em caso de erro também para evitar loops
         localStorage.removeItem('pendingSubmitApplication');
       }
     };
     
-    // Executar após o Lead Tracker (+ 1 segundo)
-    const timerId = setTimeout(processSubmitApplication, 3000);
+    // Executar após um pequeno atraso mais longo para garantir que a página carregou completamente
+    // Aumentamos o delay para dar tempo ao GA4/GTM de inicializar completamente
+    // Lead Tracker inicia em 5000ms, vamos iniciar este em 6500ms para escalonar os eventos
+    const timerId = setTimeout(processSubmitApplication, 6500);
     
     return () => clearTimeout(timerId);
   }, []);
